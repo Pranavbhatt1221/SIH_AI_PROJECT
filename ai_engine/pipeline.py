@@ -15,47 +15,26 @@ from ocr_engine import DocumentOCREngine
 from face_engine import BiometricFaceEngine
 from tampering_engine import DocumentTamperingEngine
 
-def run_pipeline(doc_input, live_face_input, db_face_input=None, demo_case=None, fallback_data=None):
+def run_pipeline(doc_input, live_face_input, db_face_input=None, demo_case=None, fallback_data=None, tampering_preset=None):
     ocr_engine = DocumentOCREngine()
     face_engine = BiometricFaceEngine()
     tampering_engine = DocumentTamperingEngine()
 
-    # Hint mapping for demo cases if specified
-    preset_hint = None
-    face_hint = None
-    if demo_case:
-        d = str(demo_case).upper()
-        if "CASE_2" in d or "ALTERED" in d or "TEXT" in d:
-            preset_hint = "TEXT_TAMPERED"
-            face_hint = 91.0
-        elif "CASE_3" in d or "PHOTO" in d or "REPLACEMENT" in d:
-            preset_hint = "PHOTO_TAMPERED"
-            face_hint = 34.0
-        elif "CASE_4" in d or "EXPIRED" in d:
-            preset_hint = "CLEAN"
-            face_hint = 93.0
-        elif "CASE_5" in d or "BLACKLIST" in d:
-            preset_hint = "CLEAN"
-            face_hint = 91.0
-        elif "STAMP" in d:
-            preset_hint = "STAMP_TAMPERED"
-            face_hint = 88.0
-
     # 1. Optical Character Recognition (PaddleOCR)
     ocr_result = ocr_engine.extract(doc_input, fallback_data)
 
-    # 2. Biometric Face Verification & Cosine Similarity
+    # 2. Biometric Face Verification & Cosine Similarity (100% Dynamic)
     face_result = face_engine.verify_faces(
         doc_face_input=doc_input,
         live_face_input=live_face_input,
         db_face_input=db_face_input,
-        expected_hint_score=face_hint
+        expected_hint_score=None
     )
 
-    # 3. AI Tampering & Error Level Analysis (ELA)
+    # 3. AI Tampering & Error Level Analysis (ELA) - 100% Dynamic CV
     tampering_result = tampering_engine.analyze(
         image_input=doc_input,
-        preset_hint=preset_hint
+        preset_hint=tampering_preset
     )
 
     output = {
@@ -97,6 +76,7 @@ if __name__ == "__main__":
                 db_face_in = payload.get("db_photo") or db_face_in
                 demo_case = payload.get("demo_case_id") or demo_case
                 fallback_dict = payload.get("fallback_data") or fallback_dict
+                tampering_preset = payload.get("tampering_preset") or None
         except Exception as e:
             print(f"Error reading json_file: {e}", file=sys.stderr)
 
@@ -106,7 +86,7 @@ if __name__ == "__main__":
         except Exception:
             pass
 
-    result = run_pipeline(doc_in, face_in, db_face_in, demo_case, fallback_dict)
+    result = run_pipeline(doc_in, face_in, db_face_in, demo_case, fallback_dict, tampering_preset)
     # Output clean JSON for Node.js consumer
     print("__JSON_START__" + json.dumps(result) + "__JSON_END__")
 

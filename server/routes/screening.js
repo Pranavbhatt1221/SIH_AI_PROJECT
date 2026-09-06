@@ -43,6 +43,15 @@ router.post('/analyze', async (req, res) => {
     const docPhotoUrl = document_image || (demoData ? demoData.doc_photo : "");
     const liveFaceUrl = live_face_image || (demoData ? demoData.live_face : docPhotoUrl);
 
+    // Validate document input
+    if (!docPhotoUrl || docPhotoUrl.length < 50) {
+      return res.status(400).json({
+        success: false,
+        error: 'CORRUPTED_IMAGE',
+        message: 'No valid document image stream was received. Please select or upload a document file.'
+      });
+    }
+
     // 1. Image Quality Assessment (IQA)
     const iqa = assessImageQuality(docPhotoUrl, document_type);
 
@@ -64,14 +73,24 @@ router.post('/analyze', async (req, res) => {
     const dbCheck = db.queryDatabaseForDocument(docNumber, docName, docDob);
     const dbPhotoUrl = dbCheck.found && dbCheck.passport ? dbCheck.passport.photo_reference : (demoData ? demoData.db_photo : docPhotoUrl);
 
+    // If dbPhotoUrl is a local static path, resolve absolute path so Python cv2 reads it directly from disk
+    let dbPhotoForAi = dbPhotoUrl;
+    if (dbPhotoUrl && typeof dbPhotoUrl === 'string' && dbPhotoUrl.startsWith('/database_photos/')) {
+      const absPath = path.resolve(__dirname, '../public', dbPhotoUrl.replace(/^\//, ''));
+      if (require('fs').existsSync(absPath)) {
+        dbPhotoForAi = absPath;
+      }
+    }
+
     // 4. Run Python 3.11 Deep Learning / Computer Vision Pipeline (OpenCV ELA + Face Verification)
     let liveAiResult = null;
     try {
       liveAiResult = await runAiPipeline({
         document_image: docPhotoUrl,
         live_face_image: liveFaceUrl,
-        db_photo: dbPhotoUrl,
+        db_photo: dbPhotoForAi,
         demo_case_id: demo_case_id || '',
+        tampering_preset: tampering_preset || '',
         fallback_data: demoData ? {
           lines: [demoData.mrz_line1, demoData.mrz_line2],
           person_name: demoData.person_name,
@@ -83,6 +102,15 @@ router.post('/analyze', async (req, res) => {
       });
     } catch (aiErr) {
       console.warn('Live AI microservice notice (fallback engaged):', aiErr.message);
+    }
+
+    // Check if the uploaded image is corrupted or failed decoding
+    if (liveAiResult && liveAiResult.tampering_result && liveAiResult.tampering_result.corrupted) {
+      return res.status(400).json({
+        success: false,
+        error: 'CORRUPTED_IMAGE',
+        message: 'The uploaded document image is corrupted, incomplete, or unreadable by computer vision decoders.'
+      });
     }
 
     // Check expiry date
@@ -169,7 +197,8 @@ router.post('/analyze', async (req, res) => {
         document_preview: docPhotoUrl,
         document_photo: (face && face.cropped_face_url) || (liveAiResult && liveAiResult.face_result && liveAiResult.face_result.document_face_crop) || docPhotoUrl,
         live_face: (face && face.live_face_crop_url) || liveFaceUrl,
-        database_photo: dbPhotoUrl,
+        database_photo: (face && face.db_face_crop_url) || (liveAiResult && liveAiResult.face_result && liveAiResult.face_result.db_face_crop) || dbPhotoUrl,
+        database_photo_original: dbPhotoUrl,
         ela_heatmap: tampering.ela_heatmap_url
       },
       iqa,
@@ -258,6 +287,36 @@ router.post('/register-to-database', (req, res) => {
   } catch (err) {
     console.error('Register error:', err);
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Dynamic Tampering Mode / ELA Simulation Endpoint (100% Dynamic CV)
+router.post('/simulate-tampering', async (req, res) => {
+  try {
+    const { preset = 'CLEAN', docPhotoUrl } = req.body;
+    if (!docPhotoUrl || docPhotoUrl.length < 50) {
+      return res.status(400).json({ success: false, error: 'CORRUPTED_IMAGE', message: 'No valid document image stream provided.' });
+    }
+
+    try {
+      const liveResult = await runAiPipeline({
+        document_image: docPhotoUrl,
+        tampering_preset: preset
+      });
+      if (liveResult && liveResult.tampering_result) {
+        if (liveResult.tampering_result.corrupted) {
+          return res.status(400).json({ success: false, error: 'CORRUPTED_IMAGE', message: 'Document image is corrupted.' });
+        }
+        return res.json({ success: true, tampering: liveResult.tampering_result });
+      }
+    } catch (err) {
+      console.warn('Simulation dynamic pipeline notice:', err.message);
+    }
+
+    const tampering = detectTampering(docPhotoUrl, preset, null);
+    res.json({ success: true, tampering });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

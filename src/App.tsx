@@ -17,7 +17,6 @@ export const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<PageView>('landing');
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisResult | null>(null);
   const [analysisPayload, setAnalysisPayload] = useState<any | null>(null);
-  const [preselectedDemoCaseId, setPreselectedDemoCaseId] = useState<string | null>(null);
 
   const handleStartAnalysis = (payload: any) => {
     setAnalysisPayload(payload);
@@ -59,11 +58,6 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleSelectDemoCase = (caseId: string) => {
-    setPreselectedDemoCaseId(caseId);
-    setCurrentPage('new_screening');
-  };
-
   return (
     <div className="min-h-screen bg-navy-950 text-slate-100 flex flex-col">
       <Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
@@ -78,7 +72,6 @@ export const App: React.FC = () => {
           {currentPage === 'landing' && (
             <LandingPage
               setCurrentPage={setCurrentPage}
-              onSelectDemoCase={handleSelectDemoCase}
             />
           )}
 
@@ -93,7 +86,6 @@ export const App: React.FC = () => {
             <NewScreeningPage
               setCurrentPage={setCurrentPage}
               onStartAnalysis={handleStartAnalysis}
-              preselectedDemoCaseId={preselectedDemoCaseId}
             />
           )}
 

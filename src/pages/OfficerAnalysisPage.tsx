@@ -61,6 +61,39 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
   const [isRegistering, setIsRegistering] = useState(false);
   const [registrationMessage, setRegistrationMessage] = useState('');
 
+  // ELA / Tampering mode dropdown state & simulation after screening
+  const [tamperingMode, setTamperingMode] = useState<string>('AUTO');
+  const [currentTampering, setCurrentTampering] = useState({ ...analysis.tampering });
+  const [isUpdatingTampering, setIsUpdatingTampering] = useState(false);
+
+  const handleTamperingModeChange = async (mode: string) => {
+    setTamperingMode(mode);
+    if (mode === 'AUTO') {
+      setCurrentTampering({ ...analysis.tampering });
+      return;
+    }
+
+    setIsUpdatingTampering(true);
+    try {
+      const res = await fetch('/api/screening/simulate-tampering', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          preset: mode,
+          docPhotoUrl: analysis.images.document_photo
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.tampering) {
+        setCurrentTampering(data.tampering);
+      }
+    } catch (err) {
+      console.error('Failed to update tampering mode', err);
+    } finally {
+      setIsUpdatingTampering(false);
+    }
+  };
+
   // Handle register document to database
   const handleRegisterToDatabase = async () => {
     setIsRegistering(true);
@@ -81,7 +114,7 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
       });
       const data = await res.json();
       if (data.success) {
-        setRegistrationMessage(`Successfully stored ${editableFields.document_number} into Mock Authorized Database with status ${registerStatus}!`);
+        setRegistrationMessage(`Successfully stored ${editableFields.document_number} into Authorized Database with status ${registerStatus}!`);
         setIsRegisterOpen(false);
         // Update local database check representation
         analysis.database_check.found = true;
@@ -108,8 +141,8 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
         risk_score: analysis.risk.final_risk_score,
         risk_level: analysis.risk.risk_level,
         face_match_score: analysis.face.scores.overall_face_match_score,
-        tampering_score: analysis.tampering.tampering_score,
-        tampering_category: analysis.tampering.category,
+        tampering_score: currentTampering.tampering_score,
+        tampering_category: currentTampering.category,
         database_status: analysis.database_check.status,
         decision: selectedDecision,
         officer_id: "OFFICER-742",
@@ -536,7 +569,7 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
       {activeTab === 'forensics' && (
         <div className="space-y-6">
           <div className="rounded-xl bg-navy-900 border border-navy-750 p-6 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-navy-800">
               <div>
                 <div className="flex items-center space-x-2">
                   <Eye className="w-5 h-5 text-amber-400" />
@@ -547,26 +580,116 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
                 </p>
               </div>
 
-              {/* View Toggle */}
-              <div className="flex items-center space-x-2 bg-navy-850 p-1 rounded-lg border border-navy-750 self-start">
-                <button
-                  onClick={() => setShowElaView(false)}
-                  className={`px-3 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
-                    !showElaView ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Standard View
-                </button>
-                <button
-                  onClick={() => setShowElaView(true)}
-                  className={`px-3 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
-                    showElaView ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  ELA Forensic Heatmap
-                </button>
+              {/* Forensic Controls: Error Level Analysis Mode Dropdown & View Toggle */}
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Error Level Analysis Mode Dropdown */}
+                <div className="flex items-center space-x-2 bg-navy-950 px-3 py-1.5 rounded-lg border border-navy-750 shadow-inner">
+                  <div className="flex items-center space-x-1.5 text-slate-400">
+                    <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                    <span className="text-xs font-semibold text-slate-200">Error Level Analysis Mode:</span>
+                  </div>
+                  <select
+                    value={tamperingMode}
+                    disabled={isUpdatingTampering}
+                    onChange={(e) => handleTamperingModeChange(e.target.value)}
+                    className="bg-navy-850 border border-navy-700 rounded-md px-2.5 py-1 text-slate-200 text-xs font-mono focus:outline-none focus:border-cyan-500 cursor-pointer disabled:opacity-50"
+                  >
+                    <option value="AUTO">AUTO (CV Algorithm / Live Scan)</option>
+                    <option value="CLEAN">Clean Document (Low ELA)</option>
+                    <option value="PHOTO_TAMPERED">Photo Splicing (High ELA)</option>
+                    <option value="TEXT_TAMPERED">Text Alteration (DOB Spliced)</option>
+                    <option value="STAMP_TAMPERED">Stamp Forgery (Cloned Vector)</option>
+                  </select>
+                  {isUpdatingTampering && (
+                    <RefreshCw className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+                  )}
+                </div>
+
+                {/* View Toggle */}
+                <div className="flex items-center space-x-1 bg-navy-850 p-1 rounded-lg border border-navy-750">
+                  <button
+                    onClick={() => setShowElaView(false)}
+                    className={`px-3 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
+                      !showElaView ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Standard View
+                  </button>
+                  <button
+                    onClick={() => setShowElaView(true)}
+                    className={`px-3 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
+                      showElaView ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    ELA Forensic Heatmap
+                  </button>
+                </div>
               </div>
             </div>
+
+            {/* ── VERDICT BANNER ─────────────────────────────────────────────── */}
+            {(currentTampering.tampering_detected || currentTampering.tampering_score >= 60) ? (
+              <div className="flex items-center space-x-3 rounded-xl bg-red-950/70 border border-red-500/50 px-4 py-3 shadow-lg shadow-red-500/10">
+                <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                  <ShieldAlert className="w-5 h-5 text-red-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-black text-red-400 tracking-wide uppercase">
+                    ⚠ Tampering / Forgery Detected
+                  </div>
+                  <div className="text-[11px] text-red-300/80 mt-0.5">
+                    {currentTampering.category || 'Digital or textual alteration detected on this document.'} — Score: {currentTampering.tampering_score}/100
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-black text-red-400 font-mono">{currentTampering.tampering_score}/100</div>
+                  <div className="text-[10px] text-red-400/70 font-mono">HIGH RISK</div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-3 rounded-xl bg-emerald-950/70 border border-emerald-500/40 px-4 py-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-black text-emerald-400 tracking-wide uppercase">Document Authentic</div>
+                  <div className="text-[11px] text-emerald-300/80 mt-0.5">
+                    No pixel-level manipulation, splice seams, or compression anomalies detected. — Score: {currentTampering.tampering_score}/100
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-black text-emerald-400 font-mono">{currentTampering.tampering_score}/100</div>
+                  <div className="text-[10px] text-emerald-400/70 font-mono">LOW RISK</div>
+                </div>
+              </div>
+            )}
+
+            {/* ── VIZ-MRZ SEMANTIC FORGERY CALLOUT ──────────────────────────── */}
+            {/* Shown when a VIZ-MRZ mismatch drives the verdict (ELA pixel checks may still be PASS) */}
+            {currentTampering.anomalies?.some(
+              (a: any) => a.label === 'Visual Zone vs MRZ Identity Consistency' && a.status === 'FAIL'
+            ) && (
+              <div className="rounded-xl bg-amber-950/60 border border-amber-500/40 p-4 space-y-2">
+                <div className="flex items-center space-x-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <span className="text-xs font-black text-amber-400 uppercase tracking-wide">
+                    Semantic / Textual Forgery — Why ELA Shows PASS
+                  </span>
+                </div>
+                <p className="text-[11px] text-amber-200/80 leading-relaxed">
+                  The pixel-level ELA heatmap shows <strong className="text-amber-300">PASS</strong> because the image was
+                  not digitally manipulated at the pixel level — no splice seams or JPEG re-compression artifacts exist.
+                  However, a <strong className="text-red-400">CRITICAL TEXTUAL FORGERY</strong> was detected:
+                  the <strong className="text-white">printed biographical name in the Visual Inspection Zone (VIZ)</strong> does
+                  not match the <strong className="text-white">machine-readable MRZ encoding</strong>.
+                  This type of forgery (physical text alteration, white-out, or re-printing) cannot be caught by ELA alone
+                  and is correctly detected by the VIZ ↔ MRZ cross-validation engine.
+                </p>
+                <div className="text-[10px] font-mono text-amber-400/70 bg-amber-500/10 rounded px-2 py-1">
+                  ICAO Doc 9303 §4.3 — VIZ biographical data must correspond exactly to MRZ encoding. Mismatch = FORGERY.
+                </div>
+              </div>
+            )}
 
             {/* Side-by-side or Toggled ELA Display */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -590,11 +713,13 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
                     <Eye className="w-3.5 h-3.5" />
                     <span>ERROR LEVEL ANALYSIS (ELA) HEATMAP</span>
                   </span>
-                  <span className="text-[10px] text-amber-400 font-mono">RESAVED Q=90</span>
+                  <span className="text-[10px] text-amber-400 font-mono">
+                    {tamperingMode === 'AUTO' ? 'RESAVED Q=90' : `SIMULATED: ${tamperingMode}`}
+                  </span>
                 </div>
                 <div className="rounded-xl overflow-hidden bg-navy-950 border border-navy-750 p-2 flex items-center justify-center min-h-[260px]">
                   <img
-                    src={analysis.tampering.ela_heatmap_url}
+                    src={currentTampering.ela_heatmap_url}
                     alt="ELA Heatmap"
                     className="max-h-60 object-contain rounded"
                   />
@@ -651,21 +776,26 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
                 <div className="text-xs font-bold text-white flex items-center space-x-2">
                   <span>Tampering Score:</span>
                   <span className={`font-mono font-black text-base ${
-                    analysis.tampering.tampering_score >= 60 ? 'text-red-400' :
-                    analysis.tampering.tampering_score >= 30 ? 'text-amber-400' : 'text-emerald-400'
+                    currentTampering.tampering_score >= 60 ? 'text-red-400' :
+                    currentTampering.tampering_score >= 30 ? 'text-amber-400' : 'text-emerald-400'
                   }`}>
-                    {analysis.tampering.tampering_score}/100
+                    {currentTampering.tampering_score}/100
                   </span>
+                  {tamperingMode !== 'AUTO' && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono border border-amber-500/30">
+                      PRESET: {tamperingMode}
+                    </span>
+                  )}
                 </div>
-                <Badge status={analysis.tampering.risk_level} />
+                <Badge status={currentTampering.risk_level} />
               </div>
 
               <div className="text-xs text-slate-300 italic">
-                "{analysis.tampering.notice}"
+                "{currentTampering.notice}"
               </div>
 
               <div className="divide-y divide-navy-800/80 pt-2 text-xs">
-                {analysis.tampering.anomalies.map((anom) => (
+                {currentTampering.anomalies.map((anom) => (
                   <div key={anom.label} className="py-2 flex items-center justify-between">
                     <div>
                       <div className="font-bold text-slate-200">{anom.label}</div>
@@ -746,10 +876,25 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
                     src={analysis.images.database_photo || analysis.images.document_photo}
                     alt="DB Reference"
                     className="w-full h-full object-cover rounded"
+                    style={{
+                      // In case an uncropped landscape passport document is shown, align left to the portrait zone
+                      objectPosition: analysis.face?.detection?.db_bbox
+                        ? 'center'
+                        : '15% 35%'
+                    }}
                   />
                 </div>
-                <div className="text-[11px] text-purple-400 font-mono">
-                  {analysis.database_check.found ? "Official Record on File" : "Unregistered"}
+                <div className="text-[11px] text-purple-400 font-mono flex items-center justify-center space-x-1">
+                  <span>{analysis.database_check.found ? "Official DB Face ROI" : "Unregistered"}</span>
+                  {analysis.face?.detection?.db_bbox ? (
+                    <span className="text-[10px] text-slate-400">
+                      ({analysis.face.detection.db_bbox[2]}×{analysis.face.detection.db_bbox[3]}px)
+                    </span>
+                  ) : (analysis.face?.detection?.document_bbox && analysis.database_check.found) ? (
+                    <span className="text-[10px] text-slate-400">
+                      ({analysis.face.detection.document_bbox[2]}×{analysis.face.detection.document_bbox[3]}px)
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -772,6 +917,46 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
                   <div className="text-lg font-bold mt-0.5">
                     <Badge status={analysis.face.verification_status} />
                   </div>
+                </div>
+              </div>
+
+              {/* Pairwise 3-Way Biometric Comparison Breakdown */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-navy-800">
+                <div className="p-3 rounded-lg bg-navy-900 border border-navy-800 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pair 1: Doc vs Live</span>
+                    <span className={`text-xs font-mono font-bold ${(analysis.face.scores?.doc_vs_live_score ?? analysis.face.scores?.overall_face_match_score) >= 75 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {analysis.face.scores?.doc_vs_live_score ?? analysis.face.scores?.overall_face_match_score}%
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-300 font-medium">Passport Photo vs Traveler</div>
+                  <div className="text-[10px] text-slate-500">Verifies traveler holds their own document</div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-navy-900 border border-navy-800 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pair 2: Live vs Database</span>
+                    <span className={`text-xs font-mono font-bold ${!analysis.database_check.found ? 'text-slate-500' : (analysis.face.scores?.live_vs_db_score ?? analysis.face.scores?.overall_face_match_score) >= 75 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {analysis.database_check.found 
+                        ? `${analysis.face.scores?.live_vs_db_score ?? analysis.face.scores?.overall_face_match_score}%`
+                        : 'Unregistered'}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-300 font-medium">Traveler vs Official Record</div>
+                  <div className="text-[10px] text-slate-500">Impersonation & identity theft shield</div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-navy-900 border border-navy-800 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pair 3: Doc vs Database</span>
+                    <span className={`text-xs font-mono font-bold ${!analysis.database_check.found ? 'text-slate-500' : (analysis.face.scores?.doc_vs_db_score ?? analysis.face.scores?.overall_face_match_score) >= 75 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {analysis.database_check.found 
+                        ? `${analysis.face.scores?.doc_vs_db_score ?? analysis.face.scores?.overall_face_match_score}%`
+                        : 'Unregistered'}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-300 font-medium">Passport Photo vs Official Record</div>
+                  <div className="text-[10px] text-slate-500">Detects photo splicing / replacement</div>
                 </div>
               </div>
 
@@ -873,10 +1058,10 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
               <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-500/40 text-xs space-y-3">
                 <div className="flex items-center space-x-2 text-amber-300 font-bold">
                   <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
-                  <span>This document number ({editableFields.document_number}) does not currently exist in the Mock Authorized Database.</span>
+                  <span>This document number ({editableFields.document_number}) does not currently exist in the Authorized Database.</span>
                 </div>
                 <p className="text-slate-300 leading-relaxed">
-                  You can manually store and register this document into the Mock Authorized Database with any status you choose (e.g. <strong>VALID</strong>, <strong>EXPIRED</strong>, or <strong>BLACKLISTED</strong>). Once stored, re-running the screening will verify against your saved record!
+                  You can manually store and register this document into the Authorized Database with any status you choose (e.g. <strong>VALID</strong>, <strong>EXPIRED</strong>, or <strong>BLACKLISTED</strong>). Once stored, re-running the screening will verify against your saved record!
                 </p>
                 <button
                   onClick={() => setIsRegisterOpen(true)}
@@ -1038,7 +1223,7 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
               <button onClick={() => setIsRegisterOpen(false)} className="text-slate-400 hover:text-white">&times;</button>
             </div>
             <p className="text-xs text-slate-300">
-              Save this credential to the persistent Mock Database so that future screenings recognize and verify it:
+              Save this credential to the persistent Authorized Database so that future screenings recognize and verify it:
             </p>
             <div className="space-y-3 text-xs">
               <div>

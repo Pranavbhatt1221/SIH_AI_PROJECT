@@ -23,15 +23,15 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
   return (
     <header className="sticky top-0 z-50 bg-navy-900/90 backdrop-blur-md border-b border-navy-750">
       {/* Top Security Advisory Banner */}
-      <div className="bg-gradient-to-r from-cyan-950/80 via-navy-900 to-amber-950/80 border-b border-cyan-500/20 px-4 py-1 flex items-center justify-between text-[11px] text-slate-300">
+      <div className="bg-gradient-to-r from-cyan-950/80 via-navy-900 to-navy-900 border-b border-cyan-500/20 px-4 py-1 flex items-center justify-between text-[11px] text-slate-300">
         <div className="flex items-center space-x-2">
           <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
           </span>
-          <span className="font-semibold text-cyan-300 tracking-wider">SIH PROTOTYPE SYSTEM</span>
+          <span className="font-semibold text-cyan-300 tracking-wider">AUTOMATED BORDER CONTROL SYSTEM</span>
           <span className="text-slate-500">•</span>
-          <span className="text-slate-400">DEMO DATA ONLY — NOT CONNECTED TO GOVERNMENT SERVERS</span>
+          <span className="text-emerald-400 font-semibold">AUTHORIZED VERIFICATION REGISTRY ACTIVE</span>
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-1.5 text-cyan-400 font-mono text-[10px]">

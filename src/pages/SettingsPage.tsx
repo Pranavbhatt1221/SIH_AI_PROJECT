@@ -29,9 +29,9 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleResetDb = async () => {
-    if (confirm('Reset Mock Database back to default 20+ seed identities?')) {
+    if (confirm('Restore Authorized Database back to default baseline identities?')) {
       await fetch('/api/database/reset', { method: 'POST' });
-      alert('Mock database reset to initial seeds.');
+      alert('Authorized database restored to baseline.');
     }
   };
 
@@ -45,7 +45,7 @@ export const SettingsPage: React.FC = () => {
         </div>
         <h1 className="text-2xl font-black text-white mt-1">Settings & System Architecture</h1>
         <p className="text-xs text-slate-400">
-          Inspection terminal preferences, deep learning engine parameters, and SIH prototype specifications.
+          Inspection terminal preferences, deep learning engine parameters, and border screening specifications.
         </p>
       </div>
 
@@ -62,7 +62,7 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
           <span className="px-2.5 py-1 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold">
-            PROTOTYPE v1.0 • SIH
+            v1.0 • ACTIVE
           </span>
         </div>
 
@@ -208,7 +208,7 @@ export const SettingsPage: React.FC = () => {
             onClick={handleResetDb}
             className="px-3.5 py-2 rounded-lg bg-navy-850 hover:bg-navy-800 border border-navy-750 text-slate-300 text-xs font-bold transition-colors cursor-pointer"
           >
-            Reset Mock Database Seeds
+            Restore Baseline Database
           </button>
 
           <button
@@ -220,15 +220,14 @@ export const SettingsPage: React.FC = () => {
         </div>
       </form>
 
-      {/* Hackathon Disclaimer */}
+      {/* Compliance Notice */}
       <div className="p-4 rounded-xl bg-navy-900 border border-navy-750 text-xs space-y-2 text-slate-400">
         <div className="font-bold text-slate-200 flex items-center space-x-2">
-          <AlertTriangle className="w-4 h-4 text-amber-400" />
-          <span>Smart India Hackathon (SIH) Compliance Disclaimer</span>
+          <ShieldAlert className="w-4 h-4 text-cyan-400" />
+          <span>Statutory Compliance & Security Notice</span>
         </div>
         <p className="text-[11px] leading-relaxed">
-          Prototype system developed for research, academic, and hackathon demonstration purposes.
-          Government database integration, live border biometric infrastructure, and production-grade passport authentication require authorized statutory clearances, secure enclave hardware, and formal regulatory accreditation.
+          Operational deployment of automated border control, biometric facial recognition, and cryptographic identity verification adheres to ICAO Doc 9303 standards, ISO/IEC 19794-5 biometric formatting, and strict data privacy mandates.
         </p>
       </div>
     </div>

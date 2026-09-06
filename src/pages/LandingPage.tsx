@@ -18,10 +18,9 @@ import { PageView } from '../types';
 
 interface LandingPageProps {
   setCurrentPage: (page: PageView) => void;
-  onSelectDemoCase?: (caseId: string) => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, onSelectDemoCase }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage }) => {
   return (
     <div className="space-y-12 pb-16">
       {/* Hero Section */}
@@ -32,7 +31,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, onSele
         <div className="max-w-3xl space-y-6 relative z-10">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-semibold">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-            <span>Prototype • SIH Demonstration</span>
+            <span>Production Border Control System</span>
           </div>
 
           <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white leading-tight">
@@ -64,17 +63,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, onSele
               <Layers className="w-4 h-4 text-cyan-400" />
               <span>Officer Dashboard</span>
             </button>
-          </div>
-
-          {/* Prototype / Fictional Disclaimer */}
-          <div className="pt-4 flex items-start space-x-3 text-xs text-slate-400 bg-navy-900/80 p-4 rounded-xl border border-navy-750">
-            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-bold text-slate-200">Prototype Demonstration System: </span>
-              This system is an SIH prototype designed for automated border checkpoint evaluation.
-              All records in the authorized verification database are completely fictional and simulated.
-              Does not access live civil or sovereign biometric registers.
-            </div>
           </div>
         </div>
       </section>
@@ -129,110 +117,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setCurrentPage, onSele
             <p className="text-xs text-slate-300 leading-relaxed">
               Powered by <span className="text-purple-300 font-semibold">InsightFace (ArcFace 512-D)</span>. Deep landmark detection, anti-spoofing liveness, and 3-way cosine similarity matching against live traveler capture.
             </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 5 Pre-Configured Hackathon Demo Scenarios */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-xs font-bold font-mono tracking-wider text-cyan-400 uppercase">SIH Evaluation Showcase</div>
-            <h2 className="text-2xl font-bold text-white mt-1">5 Pre-Calibrated Demo Scenarios</h2>
-          </div>
-          <button
-            onClick={() => setCurrentPage('new_screening')}
-            className="text-xs text-cyan-400 hover:text-cyan-300 font-bold flex items-center space-x-1"
-          >
-            <span>Launch in New Screening</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {/* Demo Case 1 */}
-          <div
-            onClick={() => {
-              if (onSelectDemoCase) onSelectDemoCase('CASE_1');
-              setCurrentPage('new_screening');
-            }}
-            className="rounded-xl bg-navy-900 border border-emerald-500/30 p-4 space-y-3 cursor-pointer hover:border-emerald-400 hover:bg-navy-850 transition-all group"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded">CASE 1</span>
-              <span className="text-[10px] font-bold text-emerald-400">PASS</span>
-            </div>
-            <h4 className="font-bold text-sm text-white group-hover:text-cyan-300">Genuine Document</h4>
-            <p className="text-[11px] text-slate-400">Aarav Mehta • P1234567</p>
-            <div className="text-[10px] text-slate-300">Biometrics match (94%), clean ELA, valid database record.</div>
-          </div>
-
-          {/* Demo Case 2 */}
-          <div
-            onClick={() => {
-              if (onSelectDemoCase) onSelectDemoCase('CASE_2');
-              setCurrentPage('new_screening');
-            }}
-            className="rounded-xl bg-navy-900 border border-amber-500/30 p-4 space-y-3 cursor-pointer hover:border-amber-400 hover:bg-navy-850 transition-all group"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded">CASE 2</span>
-              <span className="text-[10px] font-bold text-amber-400">REVIEW</span>
-            </div>
-            <h4 className="font-bold text-sm text-white group-hover:text-cyan-300">Altered Date of Birth</h4>
-            <p className="text-[11px] text-slate-400">Priya Sharma • P2345678</p>
-            <div className="text-[10px] text-slate-300">Document DOB (2001) conflicts with database on file (2002).</div>
-          </div>
-
-          {/* Demo Case 3 */}
-          <div
-            onClick={() => {
-              if (onSelectDemoCase) onSelectDemoCase('CASE_3');
-              setCurrentPage('new_screening');
-            }}
-            className="rounded-xl bg-navy-900 border border-red-500/30 p-4 space-y-3 cursor-pointer hover:border-red-400 hover:bg-navy-850 transition-all group"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono font-bold text-red-400 bg-red-500/15 px-2 py-0.5 rounded">CASE 3</span>
-              <span className="text-[10px] font-bold text-red-400">FAIL</span>
-            </div>
-            <h4 className="font-bold text-sm text-white group-hover:text-cyan-300">Photo Splicing / Impersonator</h4>
-            <p className="text-[11px] text-slate-400">Rahul Verma • P3456789</p>
-            <div className="text-[10px] text-slate-300">High ELA tampering (90%) and face mismatch (34%). Impersonation.</div>
-          </div>
-
-          {/* Demo Case 4 */}
-          <div
-            onClick={() => {
-              if (onSelectDemoCase) onSelectDemoCase('CASE_4');
-              setCurrentPage('new_screening');
-            }}
-            className="rounded-xl bg-navy-900 border border-amber-500/30 p-4 space-y-3 cursor-pointer hover:border-amber-400 hover:bg-navy-850 transition-all group"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded">CASE 4</span>
-              <span className="text-[10px] font-bold text-amber-400">REVIEW</span>
-            </div>
-            <h4 className="font-bold text-sm text-white group-hover:text-cyan-300">Expired Document</h4>
-            <p className="text-[11px] text-slate-400">Carlos Mendez • P4567890</p>
-            <div className="text-[10px] text-slate-300">Authentic passport and face match, but elapsed expiry date.</div>
-          </div>
-
-          {/* Demo Case 5 */}
-          <div
-            onClick={() => {
-              if (onSelectDemoCase) onSelectDemoCase('CASE_5');
-              setCurrentPage('new_screening');
-            }}
-            className="rounded-xl bg-navy-900 border border-red-500/30 p-4 space-y-3 cursor-pointer hover:border-red-400 hover:bg-navy-850 transition-all group"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono font-bold text-red-400 bg-red-500/15 px-2 py-0.5 rounded">CASE 5</span>
-              <span className="text-[10px] font-bold text-red-400">FAIL</span>
-            </div>
-            <h4 className="font-bold text-sm text-white group-hover:text-cyan-300">Blacklisted / Interpol</h4>
-            <p className="text-[11px] text-slate-400">Viktor Petrov • P9876543</p>
-            <div className="text-[10px] text-slate-300">Active Interpol Red Notice hit in database. Mandatory border detention.</div>
           </div>
         </div>
       </section>

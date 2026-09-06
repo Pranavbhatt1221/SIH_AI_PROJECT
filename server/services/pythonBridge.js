@@ -35,7 +35,8 @@ function runAiPipeline(options = {}) {
         live_face_image: options.live_face_image || '',
         db_photo: options.db_photo || '',
         demo_case_id: options.demo_case_id || '',
-        fallback_data: options.fallback_data || null
+        fallback_data: options.fallback_data || null,
+        tampering_preset: options.tampering_preset || ''
       }), 'utf8');
     } catch (err) {
       return reject(new Error(`Failed to write temp AI payload: ${err.message}`));

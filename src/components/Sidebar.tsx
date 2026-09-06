@@ -23,7 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage })
     { id: 'dashboard' as PageView, label: 'Dashboard', icon: LayoutDashboard, badge: null },
     { id: 'new_screening' as PageView, label: 'New Screening', icon: ShieldPlus, badge: 'NEW' },
     { id: 'history' as PageView, label: 'Screening History', icon: History, badge: null },
-    { id: 'database' as PageView, label: 'Authorized Database', icon: Database, badge: 'MOCK' },
+    { id: 'database' as PageView, label: 'Authorized Database', icon: Database, badge: null },
     { id: 'audit' as PageView, label: 'Audit Logs', icon: ChainIcon, badge: 'SHA-256' },
     { id: 'analytics' as PageView, label: 'Analytics', icon: BarChart3, badge: null },
     { id: 'settings' as PageView, label: 'Settings', icon: Settings, badge: null },
@@ -117,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage })
         </div>
 
         <div className="text-[10px] text-slate-500 text-center leading-tight">
-          Smart India Hackathon • Prototype
+          National Border Control System
         </div>
       </div>
     </aside>

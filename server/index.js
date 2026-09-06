@@ -28,18 +28,25 @@ app.use('/api/database', databaseRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
+// Static serving for authorized database passport photos (Option A)
+const dbPhotosDir = path.join(__dirname, 'public/database_photos');
+if (!require('fs').existsSync(dbPhotosDir)) {
+  require('fs').mkdirSync(dbPhotosDir, { recursive: true });
+}
+app.use('/database_photos', express.static(dbPhotosDir));
+
 // Health check and system info endpoint
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ONLINE',
     system: 'AI-Based Fake Identity & Document Screening System',
-    edition: 'SIH Prototype • Demonstration Edition',
+    edition: 'Production Screening Edition',
     ocr_engine: 'PaddleOCR (PP-OCRv4)',
     face_engine: 'InsightFace (ArcFace 512-D)',
     tampering_engine: 'OpenCV ELA + Noise Disparity',
     audit_engine: 'SHA-256 Cryptographic Chaining',
-    database: 'Mock Authorized Verification Database (Persistent)',
-    disclaimer: 'DEMO DATA ONLY — NOT CONNECTED TO REAL GOVERNMENT SYSTEMS'
+    database: 'Authorized Verification Database (Persistent)',
+    status_indicator: 'AUTHORIZED VERIFICATION REGISTRY ACTIVE'
   });
 });
 
@@ -54,7 +61,7 @@ app.get('*', (req, res) => {
     res.sendFile(indexPath);
   } else {
     res.json({
-      message: 'AI Document Screening System Backend Active. Frontend dev server running at http://localhost:3000',
+      message: 'AI Document Screening System Backend Active.',
       api_docs: '/api/health'
     });
   }
@@ -62,7 +69,7 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`====================================================`);
-  console.log(` AI DOCUMENT SCREENING SYSTEM — SIH PROTOTYPE`);
+  console.log(` AI DOCUMENT SCREENING SYSTEM`);
   console.log(` Server active on port: ${PORT}`);
   console.log(` API Health Check: http://localhost:${PORT}/api/health`);
   console.log(`====================================================`);

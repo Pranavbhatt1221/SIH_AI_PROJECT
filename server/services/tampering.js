@@ -55,6 +55,7 @@ function detectTampering(imageMeta, preset = 'CLEAN', liveAiResult = null) {
   if (liveAiResult && liveAiResult.tampering_result) {
     const res = liveAiResult.tampering_result;
     return {
+      corrupted: !!res.corrupted,
       tampering_score: res.tampering_score,
       risk_level: res.risk_level,
       tampering_detected: res.tampering_detected,

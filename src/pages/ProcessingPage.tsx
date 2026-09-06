@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Cpu,
   CheckCircle2,
@@ -9,7 +9,11 @@ import {
   ScanFace,
   Database,
   ShieldAlert,
-  Sparkles
+  Sparkles,
+  AlertTriangle,
+  RefreshCw,
+  ArrowLeft,
+  XCircle
 } from 'lucide-react';
 import { PageView, AnalysisResult } from '../types';
 
@@ -28,6 +32,8 @@ export const ProcessingPage: React.FC<ProcessingPageProps> = ({
   const [progress, setProgress] = useState(10);
   const [apiResult, setApiResult] = useState<AnalysisResult | null>(null);
   const [statusMessage, setStatusMessage] = useState('Initializing AI screening microservices...');
+  const [errorInfo, setErrorInfo] = useState<{ error: string; message: string } | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const pipelineSteps = [
     { name: "Image Quality Assessment (IQA)", detail: "Resolution, blur, contrast, and framing analysis", icon: Scan },
@@ -35,31 +41,61 @@ export const ProcessingPage: React.FC<ProcessingPageProps> = ({
     { name: "Document Validation Engine", detail: "Evaluating document schema, validity dates, and format", icon: CheckCircle2 },
     { name: "AI Tampering Detection (ELA)", detail: "Error Level Analysis, substrate noise disparity, and boundary splicing", icon: Eye },
     { name: "InsightFace Biometric Verification", detail: "ArcFace 512-D landmark alignment and anti-spoofing liveness", icon: ScanFace },
-    { name: "Mock Authorized Database Query", detail: "Cross-referencing civil registry, visas, and Interpol watchlists", icon: Database },
+    { name: "Authorized Database Query", detail: "Cross-referencing civil registry, visas, and Interpol watchlists", icon: Database },
     { name: "Multi-Modal Risk Assessment", detail: "Weighted composite risk calculation and explainability generation", icon: ShieldAlert }
   ];
 
-  // Execute actual API call in background while animating pipeline steps
-  useEffect(() => {
-    let isMounted = true;
+  // Primary screening caller with retry capability
+  const executeScreening = useCallback(async () => {
+    setErrorInfo(null);
+    setIsRetrying(true);
+    setCurrentStepIndex(0);
+    setProgress(15);
+    setStatusMessage('Initiating neural models and optical computer vision engines...');
 
-    // Call backend
-    fetch('/api/screening/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(analysisPayload || {})
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (isMounted && data.success && data.analysis) {
-          setApiResult(data.analysis);
-        }
-      })
-      .catch(err => {
-        console.error('Analysis error', err);
+    try {
+      const res = await fetch('/api/screening/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(analysisPayload || {})
       });
 
-    // Step ticker animation
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        // Corrupted image error or decode failure
+        setErrorInfo({
+          error: data.error || 'CORRUPTED_IMAGE',
+          message: data.message || 'The uploaded credential image is damaged, corrupted, or could not be decoded.'
+        });
+        setStatusMessage('Screening halted: Corrupted image stream detected.');
+        return;
+      }
+
+      if (data.analysis) {
+        setApiResult(data.analysis);
+      }
+    } catch (err: any) {
+      console.error('Analysis execution error:', err);
+      setErrorInfo({
+        error: 'NETWORK_ERROR',
+        message: err.message || 'Unable to connect to AI screening microservices. Please verify server connectivity.'
+      });
+      setStatusMessage('Screening halted: Network or service communication error.');
+    } finally {
+      setIsRetrying(false);
+    }
+  }, [analysisPayload]);
+
+  // Initial execution on mount
+  useEffect(() => {
+    executeScreening();
+  }, [executeScreening]);
+
+  // Step ticker animation while processing
+  useEffect(() => {
+    if (errorInfo) return;
+
     const stepInterval = setInterval(() => {
       setCurrentStepIndex((prev) => {
         if (prev < pipelineSteps.length - 1) {
@@ -77,15 +113,14 @@ export const ProcessingPage: React.FC<ProcessingPageProps> = ({
     }, 280);
 
     return () => {
-      isMounted = false;
       clearInterval(stepInterval);
       clearInterval(progressInterval);
     };
-  }, [analysisPayload]);
+  }, [errorInfo, isRetrying]);
 
-  // When steps finish and API result is in, finish smoothly
+  // When steps finish and API result is in, navigate smoothly to Officer Analysis
   useEffect(() => {
-    if (currentStepIndex >= pipelineSteps.length - 1 && apiResult) {
+    if (!errorInfo && currentStepIndex >= pipelineSteps.length - 1 && apiResult) {
       setProgress(100);
       setStatusMessage('Analysis Complete! Generating Officer Forensic Report...');
       const timeout = setTimeout(() => {
@@ -94,7 +129,7 @@ export const ProcessingPage: React.FC<ProcessingPageProps> = ({
       }, 700);
       return () => clearTimeout(timeout);
     }
-  }, [currentStepIndex, apiResult]);
+  }, [currentStepIndex, apiResult, errorInfo, onAnalysisComplete, setCurrentPage]);
 
   return (
     <div className="max-w-3xl mx-auto py-8 space-y-8">
@@ -133,6 +168,51 @@ export const ProcessingPage: React.FC<ProcessingPageProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Corrupted Image Error Fallback Card */}
+      {errorInfo && (
+        <div className="rounded-2xl border border-red-500/50 bg-gradient-to-b from-red-950/70 to-navy-950 p-6 md:p-8 shadow-2xl shadow-red-500/10 space-y-6 text-center animate-fade-in">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 mx-auto">
+            <AlertTriangle className="w-8 h-8 animate-bounce" />
+          </div>
+
+          <div className="space-y-2 max-w-lg mx-auto">
+            <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 font-mono text-xs font-bold">
+              <XCircle className="w-3.5 h-3.5" />
+              <span>SCREENING HALTED • {errorInfo.error}</span>
+            </div>
+            <h3 className="text-xl font-bold text-white">
+              Corrupted or Unreadable Image Stream
+            </h3>
+            <p className="text-xs text-red-200/80 leading-relaxed font-sans">
+              {errorInfo.message}
+            </p>
+            <p className="text-[11px] text-slate-400 font-mono pt-1">
+              The optical decoders could not construct valid pixel arrays from the input payload. Please retry or upload an uncorrupted JPEG/PNG image.
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <button
+              onClick={() => executeScreening()}
+              disabled={isRetrying}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-amber-500 hover:from-red-400 hover:to-amber-400 text-slate-950 font-bold text-xs flex items-center space-x-2 shadow-lg shadow-red-500/20 cursor-pointer transition-all disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRetrying ? 'animate-spin' : ''}`} />
+              <span>{isRetrying ? 'Retrying Screening...' : 'Try Again (Retry Screening)'}</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentPage('new_screening')}
+              className="px-5 py-2.5 rounded-xl bg-navy-850 hover:bg-navy-800 border border-navy-700 text-slate-200 font-bold text-xs flex items-center space-x-2 cursor-pointer transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Re-upload Document</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Pipeline Steps Cards */}
       <div className="rounded-xl bg-navy-900 border border-navy-750 divide-y divide-navy-800/80 overflow-hidden shadow-xl">

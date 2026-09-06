@@ -75,6 +75,7 @@ export interface AnalysisResult {
     document_photo: string;
     live_face: string;
     database_photo: string;
+    database_photo_original?: string;
     ela_heatmap: string;
   };
   iqa: {
@@ -139,6 +140,10 @@ export interface AnalysisResult {
       document_face_confidence: number;
       live_face_detected: boolean;
       live_face_confidence: number;
+      db_face_detected?: boolean;
+      document_bbox?: [number, number, number, number];
+      live_bbox?: [number, number, number, number];
+      db_bbox?: [number, number, number, number];
       landmarks_tracked: number;
     };
     liveness: {

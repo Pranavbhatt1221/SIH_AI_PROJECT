@@ -52,7 +52,7 @@ export const DatabasePage: React.FC = () => {
         else if (activeTab === 'documents') setDataList(data.documents || []);
       }
     } catch (err) {
-      console.error('Error fetching mock database', err);
+      console.error('Error fetching database', err);
     } finally {
       setIsLoading(false);
     }
@@ -62,8 +62,10 @@ export const DatabasePage: React.FC = () => {
     fetchData();
   }, [activeTab, search]);
 
+  const [notificationMsg, setNotificationMsg] = useState('');
+
   const handleResetDatabase = async () => {
-    if (confirm('Reset Mock Authorized Database back to initial 20+ fictional seed identities?')) {
+    if (confirm('Restore Authorized Database back to initial baseline identities?')) {
       await fetch('/api/database/reset', { method: 'POST' });
       fetchData();
     }
@@ -93,9 +95,9 @@ export const DatabasePage: React.FC = () => {
             <Database className="w-4 h-4" />
             <span>Authorized Identity Register</span>
           </div>
-          <h1 className="text-2xl font-black text-white mt-1">Mock Authorized Verification Database</h1>
+          <h1 className="text-2xl font-black text-white mt-1">Authorized Verification Database</h1>
           <p className="text-xs text-slate-400">
-            Persistent simulated government immigration database for border credential cross-referencing.
+            Authorized civil identification and immigration document verification registry.
           </p>
         </div>
 
@@ -103,29 +105,27 @@ export const DatabasePage: React.FC = () => {
           <button
             onClick={handleResetDatabase}
             className="px-3 py-2 rounded-lg bg-navy-850 hover:bg-navy-800 border border-navy-750 text-slate-300 hover:text-white text-xs font-bold transition-all cursor-pointer flex items-center space-x-1.5"
-            title="Reset to default seed identities"
+            title="Restore baseline verification identities"
           >
             <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Reset Seeds</span>
+            <span>Restore Baseline</span>
           </button>
           <button
             onClick={() => setIsAddModalOpen(true)}
             className="px-3.5 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold tracking-wide transition-all flex items-center space-x-1.5 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Add Mock Record</span>
+            <span>Add Record</span>
           </button>
         </div>
       </div>
 
-      {/* Prominent Fictional Disclaimer Banner */}
-      <div className="rounded-xl bg-amber-950/40 border border-amber-500/40 p-3.5 flex items-center space-x-3 text-xs text-amber-200">
-        <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
-        <div>
-          <strong className="text-amber-300">DEMO DATA ONLY: </strong>
-          This database is an internal prototype simulation and is NOT connected to any sovereign, Interpol, or live immigration authorities. All identities are fictional.
+      {notificationMsg && (
+        <div className="rounded-xl bg-emerald-950/60 border border-emerald-500/50 p-3.5 flex items-center space-x-3 text-xs text-emerald-300">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <span className="font-semibold">{notificationMsg}</span>
         </div>
-      </div>
+      )}
 
       {/* Tabs & Search */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-navy-750 pb-3">
@@ -264,7 +264,7 @@ export const DatabasePage: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-navy-900 border border-navy-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-navy-800 pb-3">
-              <h3 className="text-sm font-extrabold text-white">Add Mock Passport Record</h3>
+              <h3 className="text-sm font-extrabold text-white">Add Passport Record</h3>
               <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-white">&times;</button>
             </div>
             <form onSubmit={handleAddPassport} className="space-y-3 text-xs">

@@ -85,6 +85,87 @@ router.get('/identity-documents', (req, res) => {
   res.json({ success: true, documents: db.getIdentityDocuments(search) });
 });
 
+// Seed 100 Passports
+router.post('/seed-100-passports', (req, res) => {
+  try {
+    const { generate100Passports } = require('../../scripts/seed_100_passports');
+    const result = generate100Passports();
+    res.json({
+      success: true,
+      message: `Successfully inserted ${result.addedCount} new passport records into Mock Authorized Database!`,
+      stats: result
+    });
+  } catch (err) {
+    console.error('Seed 100 passports error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Bulk Import Passports (JSON array of passport records)
+router.post('/bulk-import', (req, res) => {
+  try {
+    const { passports } = req.body;
+    if (!passports || !Array.isArray(passports)) {
+      return res.status(400).json({ success: false, message: "Expected 'passports' array in request body." });
+    }
+
+    const data = db.read();
+    let count = 0;
+
+    for (const r of passports) {
+      const pNum = (r.passport_number || `P${Math.floor(1000000 + Math.random() * 9000000)}`).toUpperCase();
+      const name = r.full_name || 'Traveler Identity';
+      const nat = (r.nationality || 'IND').toUpperCase();
+      const dob = r.date_of_birth || '15/08/1995';
+      const gender = (r.gender || 'M').toUpperCase();
+      const status = (r.status || 'VALID').toUpperCase();
+      const expiry = r.expiry_date || '15/08/2032';
+      const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      const photo = r.photo_reference || createPortraitSvg(initials, '#1E3A8A', '#FFFFFF');
+
+      const pId = `PASS-IMPORT-${Date.now()}-${count + 1}`;
+      const persId = `PERS-IMPORT-${Date.now()}-${count + 1}`;
+
+      data.persons.unshift({
+        person_id: persId,
+        full_name: name,
+        date_of_birth: dob,
+        gender,
+        nationality: nat,
+        photo_reference: photo,
+        status: status === 'FLAGGED' ? 'FLAGGED' : 'ACTIVE',
+        created_at: new Date().toISOString()
+      });
+
+      data.passports.unshift({
+        passport_id: pId,
+        person_id: persId,
+        passport_number: pNum,
+        full_name: name,
+        nationality: nat,
+        date_of_birth: dob,
+        gender,
+        issue_date: '01/01/2022',
+        expiry_date: expiry,
+        status: status,
+        photo_reference: photo
+      });
+      count++;
+    }
+
+    db.write(data);
+    res.json({
+      success: true,
+      message: `Successfully imported ${count} passport records into Mock Authorized Database!`,
+      imported_count: count,
+      total_passports: data.passports.length
+    });
+  } catch (err) {
+    console.error('Bulk import error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Reset to Default Seed Data
 router.post('/reset', (req, res) => {
   const result = db.resetDatabase();

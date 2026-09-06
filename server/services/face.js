@@ -59,13 +59,16 @@ function verifyFaces(docPhotoUrl, liveFaceUrl, dbPhotoUrl, demoScore = null, liv
       embedding_size: 512,
       cropped_face_url: res.document_face_crop || null,
       live_face_crop_url: res.live_face_crop || null,
+      db_face_crop_url: res.db_face_crop || null,
       detection: {
         document_face_detected: res.document_face_detected,
         document_face_confidence: 0.98,
         live_face_detected: res.live_face_detected,
         live_face_confidence: 0.99,
+        db_face_detected: res.db_face_detected || false,
         document_bbox: res.document_bbox || null,
         live_bbox: res.live_bbox || null,
+        db_bbox: res.db_bbox || null,
         landmarks_tracked: 5
       },
       liveness: res.liveness || {
@@ -123,9 +126,9 @@ function verifyFaces(docPhotoUrl, liveFaceUrl, dbPhotoUrl, demoScore = null, liv
   }
 
   // 2. Real dynamic embedding comparison for ANY custom uploaded images!
-  const embedDoc = extractFacialEmbedding(docPhotoUrl, 42);
-  const embedLive = extractFacialEmbedding(liveFaceUrl || docPhotoUrl, liveFaceUrl ? 42 : 42);
-  const embedDb = extractFacialEmbedding(dbPhotoUrl || docPhotoUrl, 42);
+  const embedDoc = extractFacialEmbedding(docPhotoUrl, 101);
+  const embedLive = extractFacialEmbedding(liveFaceUrl || docPhotoUrl, liveFaceUrl ? 202 : 101);
+  const embedDb = extractFacialEmbedding(dbPhotoUrl || docPhotoUrl, 303);
 
   // If docPhotoUrl and liveFaceUrl are the exact same image (e.g. user tested with single photo)
   let rawSimilarity = 0.94;
@@ -135,12 +138,20 @@ function verifyFaces(docPhotoUrl, liveFaceUrl, dbPhotoUrl, demoScore = null, liv
     } else {
       // Calculate true cosine similarity between embeddings
       const sim = computeCosineSimilarity(embedDoc, embedLive);
-      // Map cosine range (typically 0.2 to 0.9) to intuitive percentage (0 to 100%)
-      rawSimilarity = Math.max(0.15, Math.min(0.99, (sim + 1) / 2));
+      // Calibrated biometric threshold mapping
+      if (sim < 0.70) {
+        rawSimilarity = Math.max(0.05, (sim / 0.70) * 0.30);
+      } else if (sim < 0.91) {
+        rawSimilarity = 0.30 + ((sim - 0.70) / 0.21) * 0.25;
+      } else if (sim < 0.95) {
+        rawSimilarity = 0.60 + ((sim - 0.91) / 0.04) * 0.25;
+      } else {
+        rawSimilarity = 0.85 + Math.min(0.14, ((sim - 0.95) / 0.05) * 0.14);
+      }
     }
   }
 
-  const finalMatchScore = Math.round(rawSimilarity * 1000) / 10; // e.g. 94.2%
+  const finalMatchScore = Math.round(rawSimilarity * 1000) / 10;
 
   let status = "MATCH";
   let statusColor = "GREEN";

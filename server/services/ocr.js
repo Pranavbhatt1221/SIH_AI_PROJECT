@@ -237,9 +237,15 @@ function parseFieldsFromOcrText(rawText) {
   let docNumDiscrepancy = false;
 
   if (parsedMrz) {
-    // Cross-check Given Name & Surname with bilingual tolerance
+    // Cross-check Given Name & Surname with bilingual tolerance and name-order flexibility
     if (vizGivenName && parsedMrz.given_names) {
-      const matches = matchNameBilingual(vizGivenName, parsedMrz.given_names, vizNationality);
+      let matches = matchNameBilingual(vizGivenName, parsedMrz.given_names, vizNationality);
+      if (!matches && vizSurname && matchNameBilingual(vizSurname, parsedMrz.given_names, vizNationality)) {
+        matches = true;
+      }
+      if (!matches && vizFullName && parsedMrz.full_name && matchNameBilingual(vizFullName, parsedMrz.full_name, vizNationality)) {
+        matches = true;
+      }
       if (!matches) {
         nameDiscrepancy = true;
         vizMrzMatch = false;
