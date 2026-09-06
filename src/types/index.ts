@@ -98,6 +98,19 @@ export interface AnalysisResult {
       document_type: string;
     };
     mrz: any;
+    viz?: {
+      full_name?: string;
+      given_name?: string;
+      surname?: string;
+      national_given_name?: string;
+      national_surname?: string;
+      multilingual_detected?: boolean;
+      document_number?: string;
+      date_of_birth?: string;
+      expiry_date?: string;
+    };
+    viz_mrz_match?: boolean;
+    discrepancy_reason?: string;
     ocr_status: string;
   };
   doc_validation: {

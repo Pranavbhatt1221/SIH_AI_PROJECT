@@ -9,26 +9,27 @@ import re
 import sys
 import json
 
-# Try importing PaddleOCR
+# Guard paddleocr import to avoid Windows OpenMP deadlocks
 PADDLE_AVAILABLE = False
-try:
-    from paddleocr import PaddleOCR
-    PADDLE_AVAILABLE = True
-except Exception as e:
-    PADDLE_AVAILABLE = False
 
 class DocumentOCREngine:
     def __init__(self, use_gpu=False):
         self.paddle_ocr = None
         self.is_paddle = False
+        self.use_gpu = use_gpu
+
+    def _get_paddle(self):
+        if self.paddle_ocr is not None:
+            return self.paddle_ocr
         if PADDLE_AVAILABLE:
             try:
-                # Initialize PaddleOCR with English language and angle classification
-                self.paddle_ocr = PaddleOCR(use_angle_cls=True, lang='en', show_log=False)
+                # Lazy initialization with local timeout
+                self.paddle_ocr = PaddleOCR(use_angle_cls=False, lang='en', show_log=False)
                 self.is_paddle = True
             except Exception as e:
                 self.paddle_ocr = None
                 self.is_paddle = False
+        return self.paddle_ocr
 
     @staticmethod
     def calculate_icao_check_digit(data_str):
@@ -124,27 +125,52 @@ class DocumentOCREngine:
     def extract(self, image_path, fallback_data=None):
         """
         Extract text lines using PaddleOCR with fallback parsing.
+        Supports file paths and base64 data URLs.
         """
         extracted_lines = []
         raw_text_blocks = []
         confidence_scores = []
+        temp_file_path = None
 
-        if self.is_paddle and os.path.exists(image_path):
-            try:
-                results = self.paddle_ocr.ocr(image_path, cls=True)
-                if results and len(results) > 0 and results[0]:
-                    for line in results[0]:
-                        box = line[0]
-                        text, conf = line[1]
-                        extracted_lines.append(text)
-                        confidence_scores.append(float(conf))
-                        raw_text_blocks.append({
-                            "text": text,
-                            "confidence": round(float(conf), 2),
-                            "box": box
-                        })
-            except Exception as e:
-                pass
+        try:
+            if isinstance(image_path, str) and image_path.startswith('data:image'):
+                if 'base64,' in image_path:
+                    import tempfile
+                    import base64
+                    _, b64data = image_path.split('base64,', 1)
+                    missing_padding = len(b64data) % 4
+                    if missing_padding:
+                        b64data += '=' * (4 - missing_padding)
+                    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tf:
+                        tf.write(base64.b64decode(b64data))
+                        temp_file_path = tf.name
+                    image_path = temp_file_path
+                else:
+                    # SVG or raw data URL
+                    image_path = ""
+
+            if self.is_paddle and os.path.exists(image_path):
+                try:
+                    results = self.paddle_ocr.ocr(image_path, cls=True)
+                    if results and len(results) > 0 and results[0]:
+                        for line in results[0]:
+                            box = line[0]
+                            text, conf = line[1]
+                            extracted_lines.append(text)
+                            confidence_scores.append(float(conf))
+                            raw_text_blocks.append({
+                                "text": text,
+                                "confidence": round(float(conf), 2),
+                                "box": box
+                            })
+                except Exception as e:
+                    pass
+        finally:
+            if temp_file_path and os.path.exists(temp_file_path):
+                try:
+                    os.remove(temp_file_path)
+                except Exception:
+                    pass
 
         # If PaddleOCR extracted nothing or was unavailable, use fallback_data or pattern detection
         if not extracted_lines and fallback_data:

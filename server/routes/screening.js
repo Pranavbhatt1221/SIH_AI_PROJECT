@@ -13,6 +13,7 @@ const { extractDocumentData } = require('../services/ocr');
 const { detectTampering } = require('../services/tampering');
 const { verifyFaces } = require('../services/face');
 const { calculateMultiModalRisk } = require('../services/riskEngine');
+const { runAiPipeline } = require('../services/pythonBridge');
 
 // Get all pre-configured SIH Demo Cases
 router.get('/demo-cases', (req, res) => {
@@ -39,11 +40,14 @@ router.post('/analyze', async (req, res) => {
       demoData = SIH_DEMO_CASES[demo_case_id];
     }
 
-    // 1. Image Quality Assessment (IQA)
-    const iqa = assessImageQuality(document_image, document_type);
+    const docPhotoUrl = document_image || (demoData ? demoData.doc_photo : "");
+    const liveFaceUrl = live_face_image || (demoData ? demoData.live_face : docPhotoUrl);
 
-    // 2. PaddleOCR & Character Extraction
-    const ocr = await extractDocumentData(document_image, demoData);
+    // 1. Image Quality Assessment (IQA)
+    const iqa = assessImageQuality(docPhotoUrl, document_type);
+
+    // 2. OCR & Field Extraction
+    const ocr = await extractDocumentData(docPhotoUrl, demoData);
 
     // Allow manual override fields if user verified/edited them in UI
     if (manual_override_fields) {
@@ -58,6 +62,28 @@ router.post('/analyze', async (req, res) => {
 
     // 3. Query Mock Authorized Database
     const dbCheck = db.queryDatabaseForDocument(docNumber, docName, docDob);
+    const dbPhotoUrl = dbCheck.found && dbCheck.passport ? dbCheck.passport.photo_reference : (demoData ? demoData.db_photo : docPhotoUrl);
+
+    // 4. Run Python 3.11 Deep Learning / Computer Vision Pipeline (OpenCV ELA + Face Verification)
+    let liveAiResult = null;
+    try {
+      liveAiResult = await runAiPipeline({
+        document_image: docPhotoUrl,
+        live_face_image: liveFaceUrl,
+        db_photo: dbPhotoUrl,
+        demo_case_id: demo_case_id || '',
+        fallback_data: demoData ? {
+          lines: [demoData.mrz_line1, demoData.mrz_line2],
+          person_name: demoData.person_name,
+          document_number: demoData.document_number,
+          date_of_birth: demoData.date_of_birth,
+          expiry_date: demoData.expiry_date,
+          nationality: demoData.nationality
+        } : null
+      });
+    } catch (aiErr) {
+      console.warn('Live AI microservice notice (fallback engaged):', aiErr.message);
+    }
 
     // Check expiry date
     let isDateExpired = false;
@@ -72,39 +98,52 @@ router.post('/analyze', async (req, res) => {
       isDateExpired = true;
     }
 
-    // 4. Document Validation Checks
+    // 5. Document Validation Checks
     const formatValid = !!(docNumber && docName);
-    const mrzValid = ocr.mrz ? ocr.mrz.composite_valid !== false : true;
+    const vizMrzValid = ocr.viz_mrz_match !== false;
+    const mrzValid = ocr.mrz ? (ocr.mrz.composite_valid !== false && vizMrzValid) : true;
     const datesValid = !isDateExpired;
     const consistencyValid = dbCheck.found ? (dbCheck.name_match && dbCheck.dob_match) : true;
 
     const docValidation = {
-      overall_status: (formatValid && mrzValid && datesValid && consistencyValid) ? "PASS" : "WARNING",
+      overall_status: (formatValid && mrzValid && datesValid && consistencyValid && vizMrzValid) ? "PASS" : "FAIL",
       format_valid: formatValid,
       mrz_valid: mrzValid,
       dates_valid: datesValid,
       consistency_valid: consistencyValid,
+      viz_mrz_valid: vizMrzValid,
       checks: [
-        { name: "Document Structure & Fields", status: formatValid ? "PASS" : "FAIL", detail: `Document serial: ${docNumber}` },
-        { name: "MRZ Check Digit Math (ICAO 9303)", status: mrzValid ? "PASS" : "FAIL", detail: "Modulus-10 checksum verified on document number and dates." },
+        { name: "Document Structure & Fields", status: formatValid ? "PASS" : "FAIL", detail: docNumber ? `Document serial: ${docNumber}` : "Missing document serial number." },
+        { name: "Visual Zone vs MRZ Integrity Cross-Check", status: vizMrzValid ? "PASS" : "FAIL", detail: vizMrzValid ? "Visual Inspection Zone name & document serial match MRZ machine-readable encoding." : (ocr.discrepancy_reason || "Visual Zone text does not match MRZ encoding.") },
+        { name: "MRZ Check Digit Math (ICAO 9303)", status: (ocr.mrz ? ocr.mrz.composite_valid !== false : true) ? "PASS" : "FAIL", detail: "Modulus-10 checksum verified on document number and dates." },
         { name: "Date Validity & Expiry", status: datesValid ? "PASS" : "FAIL", detail: datesValid ? `Valid until ${docExpiry}` : `Document expired (${docExpiry})` },
         { name: "Database Consistency", status: consistencyValid ? "PASS" : "FAIL", detail: dbCheck.found ? (consistencyValid ? "Biographical fields match authorized record." : "Field mismatch detected with authorized record.") : "Unregistered credential." }
       ]
     };
 
-    // 5. AI Tampering Analysis (ELA)
+    // 6. AI Tampering Analysis (Live OpenCV ELA Heatmap)
     const presetToUse = tampering_preset || (demoData ? demoData.tampering_preset : 'CLEAN');
-    const tampering = detectTampering(document_image, presetToUse);
+    const tampering = detectTampering(docPhotoUrl, presetToUse, liveAiResult);
 
-    // 6. InsightFace Face Verification & Deep Embedding Cosine Similarity
-    const docPhotoUrl = demoData ? demoData.doc_photo : document_image;
-    const liveFaceUrl = live_face_image || (demoData ? demoData.live_face : docPhotoUrl);
-    const dbPhotoUrl = dbCheck.found && dbCheck.passport ? dbCheck.passport.photo_reference : (demoData ? demoData.db_photo : docPhotoUrl);
-    const demoFaceScore = demoData ? demoData.face_match_score : null;
+    // If VIZ and MRZ mismatch, escalate tampering detection
+    if (!vizMrzValid) {
+      tampering.tampering_score = Math.max(tampering.tampering_score, 88);
+      tampering.tampering_detected = true;
+      tampering.risk_level = "HIGH";
+      tampering.category = "Text Manipulation / VIZ-MRZ Mismatch";
+      tampering.anomalies.unshift({
+        label: "Visual Zone vs MRZ Identity Consistency",
+        status: "FAIL",
+        detail: ocr.discrepancy_reason || "Visual Zone name does not match MRZ machine-readable lines."
+      });
+      tampering.notice = "AI-assisted indication — FORGERY DETECTED: Visual biographical text differs from MRZ encoding.";
+    }
 
-    const face = verifyFaces(docPhotoUrl, liveFaceUrl, dbPhotoUrl, demoFaceScore);
+    // 7. Face Verification & Deep Feature Cosine Similarity
+    const demoFaceScore = (liveAiResult && liveAiResult.face_result) ? null : (demoData ? demoData.face_match_score : null);
+    const face = verifyFaces(docPhotoUrl, liveFaceUrl, dbPhotoUrl, demoFaceScore, liveAiResult);
 
-    // 7. Multi-Modal Risk Engine
+    // 8. Multi-Modal Risk Engine
     const risk = calculateMultiModalRisk({
       iqaResult: iqa,
       ocrResult: ocr,
@@ -128,8 +167,8 @@ router.post('/analyze', async (req, res) => {
       gender: ocr.extracted_fields.gender,
       images: {
         document_preview: docPhotoUrl,
-        document_photo: docPhotoUrl,
-        live_face: liveFaceUrl,
+        document_photo: (face && face.cropped_face_url) || (liveAiResult && liveAiResult.face_result && liveAiResult.face_result.document_face_crop) || docPhotoUrl,
+        live_face: (face && face.live_face_crop_url) || liveFaceUrl,
         database_photo: dbPhotoUrl,
         ela_heatmap: tampering.ela_heatmap_url
       },
@@ -254,6 +293,7 @@ router.post('/finalize', (req, res) => {
       risk_level: risk_level || "LOW RISK",
       face_match_score: face_match_score || 94.0,
       tampering_score: tampering_score || 5,
+      tampering_category: req.body.tampering_category || (tampering_score >= 60 ? "Altered Text / Photo Discrepancy" : "Authentic"),
       database_status: database_status || "MATCH",
       decision,
       officer_id,

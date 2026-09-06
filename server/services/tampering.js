@@ -50,7 +50,22 @@ function generateElaVisualSvg(presetType) {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-function detectTampering(imageMeta, preset = 'CLEAN') {
+function detectTampering(imageMeta, preset = 'CLEAN', liveAiResult = null) {
+  // If real AI analysis was computed by pythonBridge / OpenCV ELA
+  if (liveAiResult && liveAiResult.tampering_result) {
+    const res = liveAiResult.tampering_result;
+    return {
+      tampering_score: res.tampering_score,
+      risk_level: res.risk_level,
+      tampering_detected: res.tampering_detected,
+      category: res.category,
+      ela_heatmap_url: res.ela_heatmap_url || generateElaVisualSvg(preset),
+      anomalies: res.anomalies || [],
+      metrics: res.metrics || null,
+      explanation: res.explanation || "Computed via live OpenCV Error Level Analysis (ELA) at JPEG Q=90."
+    };
+  }
+
   const p = (preset || 'CLEAN').toUpperCase();
 
   if (p === 'PHOTO_TAMPERED') {

@@ -1,7 +1,33 @@
-venv/
-.venv/
-__pycache__/
-*.pyc
-.env
-.env.*
+# Dependencies
 node_modules/
+/.pnp
+.pnp.js
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Production build artifacts
+# (dist is kept or rebuilt, but keep temp/cache ignored)
+.vite/
+
+# Temporary and local test files
+*.tmp
+*.log
+test_*.js
+test_*.py
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# OS Generated
+.DS_Store
+Thumbs.db

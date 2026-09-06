@@ -77,7 +77,11 @@ function calculateMultiModalRisk(params) {
   let overrideTriggered = false;
   let overrideReason = "";
 
-  if (databaseResult && (databaseResult.is_blacklisted || databaseResult.watchlist_hit)) {
+  if (ocrResult && ocrResult.viz_mrz_match === false) {
+    calculatedScore = Math.max(calculatedScore, 92);
+    overrideTriggered = true;
+    overrideReason = ocrResult.discrepancy_reason || "CRITICAL FORGERY: Visual Zone text does not match MRZ machine-readable encoding.";
+  } else if (databaseResult && (databaseResult.is_blacklisted || databaseResult.watchlist_hit)) {
     calculatedScore = Math.max(calculatedScore, 98);
     overrideTriggered = true;
     overrideReason = "CRITICAL OVERRIDE: Document or person listed on active INTERPOL/Watchlist blacklist.";
@@ -124,6 +128,15 @@ function calculateMultiModalRisk(params) {
 
   // Build Explainable Result bullet points
   const explanations = [];
+
+  // VIZ vs MRZ cross-check explanation
+  if (ocrResult && ocrResult.viz_mrz_match === false) {
+    explanations.push({
+      type: "FAIL",
+      icon: "✗",
+      text: ocrResult.discrepancy_reason || "Visual Zone biographical details do not match MRZ machine-readable encoding"
+    });
+  }
 
   // Database checks
   if (databaseResult && databaseResult.found) {

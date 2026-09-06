@@ -75,6 +75,8 @@ function parseTD3PassportMRZ(line1, line2) {
     line2: l2,
     document_type: "Passport",
     full_name: fullName,
+    surname: surname,
+    given_names: givenNames,
     document_number: docNumber,
     nationality: nationality,
     date_of_birth: formattedDob,

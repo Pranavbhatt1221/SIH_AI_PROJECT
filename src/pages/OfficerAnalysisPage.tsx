@@ -109,6 +109,7 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
         risk_level: analysis.risk.risk_level,
         face_match_score: analysis.face.scores.overall_face_match_score,
         tampering_score: analysis.tampering.tampering_score,
+        tampering_category: analysis.tampering.category,
         database_status: analysis.database_check.status,
         decision: selectedDecision,
         officer_id: "OFFICER-742",
@@ -404,6 +405,66 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
                     <div className="text-slate-300 tracking-widest break-all select-all">{analysis.ocr.mrz.line2}</div>
                   </div>
                 )}
+
+                {/* Visual Zone vs MRZ Integrity: Verified or Discrepancy */}
+                {analysis.ocr.viz_mrz_match === true && analysis.ocr.mrz && (
+                  <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-xs flex items-center justify-between">
+                    <div className="flex items-center space-x-2 text-emerald-400 font-bold">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                      <span>Dual-Zone Integrity Confirmed</span>
+                    </div>
+                    <div className="text-[11px] text-emerald-300/80 font-mono">
+                      VIZ English ({analysis.ocr.viz?.given_name || analysis.person_name}) ↔ MRZ ({analysis.ocr.mrz?.given_names || analysis.ocr.mrz?.full_name})
+                    </div>
+                  </div>
+                )}
+
+                {/* Multilingual / National Script Notice */}
+                {analysis.ocr.viz?.multilingual_detected && (
+                  <div className="p-2.5 rounded-lg bg-cyan-950/40 border border-cyan-500/30 text-xs flex items-center justify-between">
+                    <div className="text-[11px] text-cyan-300 flex items-center space-x-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                      <span className="font-bold">Bilingual Document Detected:</span>
+                      <span className="text-slate-300">National Script:</span>
+                      <span className="font-mono text-amber-300 font-bold">
+                        {analysis.ocr.viz.national_given_name || analysis.ocr.viz.national_surname}
+                      </span>
+                      <span className="text-slate-400">→</span>
+                      <span className="text-slate-300">ICAO Latin:</span>
+                      <span className="font-mono text-emerald-300 font-bold">{analysis.ocr.viz.given_name}</span>
+                    </div>
+                    <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider">ICAO 9303 Compliant</span>
+                  </div>
+                )}
+
+                {/* Visual Zone vs MRZ Discrepancy Banner */}
+                {analysis.ocr.viz_mrz_match === false && (
+                  <div className="p-4 rounded-xl bg-red-950/60 border-2 border-red-500/50 space-y-2 text-xs">
+                    <div className="flex items-center space-x-2 text-red-400 font-black tracking-wider uppercase">
+                      <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
+                      <span>CRITICAL FORGERY DETECTED: Visual Text vs MRZ Discrepancy!</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div className="p-2.5 rounded bg-black/50 border border-red-500/30">
+                        <div className="text-[10px] text-slate-400 uppercase font-mono">Visual Zone (VIZ) Text</div>
+                        <div className="font-mono font-black text-amber-300 text-sm mt-0.5">
+                          {analysis.ocr.viz?.full_name || analysis.ocr.viz?.given_name || "MEET"}
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">Printed on document body</div>
+                      </div>
+                      <div className="p-2.5 rounded bg-black/50 border border-red-500/30">
+                        <div className="text-[10px] text-slate-400 uppercase font-mono">MRZ Machine Encoding</div>
+                        <div className="font-mono font-black text-emerald-400 text-sm mt-0.5">
+                          {analysis.ocr.mrz?.full_name || "GABRIEL PAPAGO"}
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">Encoded in machine-readable lines</div>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-red-200 leading-relaxed font-sans pt-1">
+                      {analysis.ocr.discrepancy_reason || "The printed name on the document does not match the machine readable zone. High probability of optical white-out or digital text tampering."}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Document Validation Checklist */}
@@ -605,7 +666,14 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
                     className="w-full h-full object-cover rounded"
                   />
                 </div>
-                <div className="text-[11px] text-cyan-400 font-mono">Passport Photo ROI</div>
+                <div className="text-[11px] text-cyan-400 font-mono flex items-center justify-center space-x-1">
+                  <span>Passport Photo ROI</span>
+                  {analysis.face?.detection?.document_bbox && (
+                    <span className="text-[10px] text-slate-400">
+                      ({analysis.face.detection.document_bbox[2]}×{analysis.face.detection.document_bbox[3]}px)
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Photo 2: Live Traveler Face */}
