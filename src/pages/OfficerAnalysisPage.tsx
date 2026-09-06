@@ -599,7 +599,50 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
                     className="max-h-60 object-contain rounded"
                   />
                 </div>
+
+                {/* ELA Thermal Spectrum Legend Bar */}
+                <div className="p-3 rounded-lg bg-navy-950 border border-navy-800 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-mono">
+                    <span className="text-slate-400 font-semibold uppercase tracking-wider">Compression Error Scale</span>
+                    <span className="text-cyan-400">Jet Colormap (γ=0.45 Exp.)</span>
+                  </div>
+
+                  {/* Gradient bar */}
+                  <div className="h-3 w-full rounded-full bg-gradient-to-r from-blue-700 via-cyan-400 via-emerald-400 via-yellow-400 to-red-600 shadow-inner border border-navy-700"></div>
+
+                  <div className="grid grid-cols-4 text-[10px] text-slate-400 font-mono text-center pt-0.5">
+                    <div className="text-left text-blue-300">
+                      <span className="block font-bold">0% - 25%</span>
+                      <span className="text-[9px] text-slate-500">Uniform Substrate</span>
+                    </div>
+                    <div className="text-cyan-300">
+                      <span className="block font-bold">25% - 50%</span>
+                      <span className="text-[9px] text-slate-500">Substrate Texture</span>
+                    </div>
+                    <div className="text-yellow-300">
+                      <span className="block font-bold">50% - 75%</span>
+                      <span className="text-[9px] text-slate-500">Natural Typography</span>
+                    </div>
+                    <div className="text-right text-red-400">
+                      <span className="block font-bold">75% - 100%</span>
+                      <span className="text-[9px] text-red-400/80">Discontinuity / Spliced</span>
+                    </div>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            {/* How ELA Works Forensic Guide */}
+            <div className="p-4 rounded-xl bg-navy-950/70 border border-navy-800/80 space-y-2 text-xs">
+              <div className="font-bold text-slate-200 flex items-center space-x-1.5">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                <span>Forensic Interpretation Guide: How Error Level Analysis Works</span>
+              </div>
+              <p className="text-slate-400 text-[11px] leading-relaxed">
+                Error Level Analysis resaves the document at a known JPEG quantization grid (Q=90) and computes the pixel-by-pixel compression difference.
+                In a genuine, untouched digital scan, uniform surfaces reach compression equilibrium and appear <strong className="text-blue-300">cool blue/cyan</strong>, while legitimate sharp printed text and security guilloche lines exhibit normal high-frequency energy (<strong className="text-yellow-300">green/yellow</strong>).
+                If an element (such as a portrait photo or altered biographical field) was digitally spliced or pasted from another source with a different compression history, its <strong className="text-red-400">error rate spikes anomalously into bright red</strong> along its boundary.
+              </p>
             </div>
 
             {/* Tampering Metrics & Anomalies */}

@@ -67,17 +67,24 @@ class DocumentTamperingEngine:
         diff = ImageChops.difference(pil_img, resaved_img)
         diff_np = np.array(diff)
 
-        gray_diff = cv2.cvtColor(diff_np, cv2.COLOR_RGB2GRAY)
+        gray_diff = cv2.cvtColor(diff_np, cv2.COLOR_RGB2GRAY).astype(np.float32)
         max_error = float(np.max(gray_diff))
         mean_error = float(np.mean(gray_diff))
         std_error = float(np.std(gray_diff))
 
-        scale_val = (255.0 / max(1.0, max_error)) if max_error > 0 else 1.0
-        scaled_diff = np.clip(gray_diff.astype(np.float32) * scale_val, 0, 255).astype(np.uint8)
+        # Dynamic range enhancement:
+        # Use 99.5th percentile normalization + non-linear gamma expansion (gamma=0.45)
+        # to distribute compression levels across the full spectrum:
+        # Dark Blue (uniform baseline) -> Cyan/Teal (print) -> Yellow (transitions) -> Red (high error anomalies)
+        p99 = float(np.percentile(gray_diff, 99.5))
+        p99 = max(1.0, p99)
+        normalized = np.clip(gray_diff / p99, 0.0, 1.0)
+        gamma_expanded = np.power(normalized, 0.45) * 255.0
+        scaled_diff = np.clip(gamma_expanded, 0, 255).astype(np.uint8)
 
         heatmap = cv2.applyColorMap(scaled_diff, cv2.COLORMAP_JET)
 
-        _, enc = cv2.imencode('.jpg', heatmap, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
+        _, enc = cv2.imencode('.jpg', heatmap, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
         heatmap_b64 = "data:image/jpeg;base64," + base64.b64encode(enc).decode('utf-8')
 
         return {
@@ -86,7 +93,7 @@ class DocumentTamperingEngine:
             "mean_error": mean_error,
             "std_error": std_error,
             "diff_np": diff_np,
-            "gray_diff": gray_diff
+            "gray_diff": gray_diff.astype(np.uint8)
         }
 
     def detect_edge_discontinuities(self, np_img):
