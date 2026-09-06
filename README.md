@@ -183,5 +183,6 @@ npm run client  # Runs Vite development server on http://localhost:3000
 - Integration with ICAO Public Key Directory (PKD) for electronic e-Passport chip cryptographic validation (BAC / EAC / SAC).
 - Integration with national border agency API gateways (e.g. CVIS, APIS, INTERPOL SLTD database).
 - Dedicated Edge AI acceleration using Intel OpenVINO / NVIDIA TensorRT for sub-second checkpoint throughput.
-#   S I H _ A I _ P R O J E C T  
+#   S I H _ A I _ P R O J E C T 
  
+ h
