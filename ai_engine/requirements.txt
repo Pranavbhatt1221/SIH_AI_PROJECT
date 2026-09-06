@@ -1,0 +1,8 @@
+# AI Microservice Dependencies for PaddleOCR and InsightFace
+paddlepaddle>=2.5.2
+paddleocr>=2.7.3
+insightface>=0.7.3
+onnxruntime>=1.16.0
+opencv-python>=4.8.0
+pillow>=10.0.0
+numpy>=1.24.0
