@@ -91,12 +91,12 @@ export const DatabasePage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2 text-cyan-400 font-mono text-xs font-bold uppercase tracking-wider">
+          <div className="flex items-center space-x-2 text-blue-700 font-mono text-xs font-bold uppercase tracking-wider">
             <Database className="w-4 h-4" />
             <span>Authorized Identity Register</span>
           </div>
-          <h1 className="text-2xl font-black text-white mt-1">Authorized Verification Database</h1>
-          <p className="text-xs text-slate-400">
+          <h1 className="text-2xl font-extrabold text-slate-900 mt-1">Authorized Verification Database</h1>
+          <p className="text-xs text-slate-500">
             Authorized civil identification and immigration document verification registry.
           </p>
         </div>
@@ -104,15 +104,15 @@ export const DatabasePage: React.FC = () => {
         <div className="flex items-center space-x-2">
           <button
             onClick={handleResetDatabase}
-            className="px-3 py-2 rounded-lg bg-navy-850 hover:bg-navy-800 border border-navy-750 text-slate-300 hover:text-white text-xs font-bold transition-all cursor-pointer flex items-center space-x-1.5"
+            className="px-3 py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-bold transition-all cursor-pointer flex items-center space-x-1.5 shadow-sm"
             title="Restore baseline verification identities"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
+            <RefreshCw className="w-3.5 h-3.5 text-blue-700" />
             <span>Restore Baseline</span>
           </button>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="px-3.5 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold tracking-wide transition-all flex items-center space-x-1.5 cursor-pointer"
+            className="px-3.5 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold tracking-wide transition-all flex items-center space-x-1.5 cursor-pointer shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Record</span>
@@ -121,14 +121,14 @@ export const DatabasePage: React.FC = () => {
       </div>
 
       {notificationMsg && (
-        <div className="rounded-xl bg-emerald-950/60 border border-emerald-500/50 p-3.5 flex items-center space-x-3 text-xs text-emerald-300">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+        <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 flex items-center space-x-3 text-xs text-emerald-800">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
           <span className="font-semibold">{notificationMsg}</span>
         </div>
       )}
 
       {/* Tabs & Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-navy-750 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-3">
         <div className="flex items-center space-x-1 overflow-x-auto text-xs font-bold">
           {[
             { id: 'passports', label: 'Passports' },
@@ -142,8 +142,8 @@ export const DatabasePage: React.FC = () => {
               onClick={() => setActiveTab(tab.id as any)}
               className={`px-3.5 py-2 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                  : 'text-slate-400 hover:text-white hover:bg-navy-850'
+                  ? 'bg-blue-50 text-blue-800 border border-blue-200 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               {tab.label}
@@ -158,17 +158,17 @@ export const DatabasePage: React.FC = () => {
             placeholder="Search by Name, Number, ID..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-navy-900 border border-navy-750 rounded-lg pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-sans"
+            className="w-full bg-white border border-slate-300 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-sans"
           />
         </div>
       </div>
 
       {/* Table Container */}
-      <div className="rounded-xl bg-navy-900 border border-navy-750 overflow-hidden shadow-xl">
+      <div className="rounded-xl bg-white border border-slate-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-navy-800 bg-navy-850 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-600">
                 <th className="py-3 px-4">Photo</th>
                 <th className="py-3 px-4">{activeTab === 'watchlist' ? 'Target Name' : 'Primary ID'}</th>
                 <th className="py-3 px-4">Full Name / Details</th>
@@ -178,30 +178,30 @@ export const DatabasePage: React.FC = () => {
                 <th className="py-3 px-4 text-right">Inspect</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-navy-800 font-mono">
+            <tbody className="divide-y divide-slate-200 font-mono">
               {dataList.map((item, idx) => {
                 const photoRef = item.photo_reference;
                 return (
-                  <tr key={idx} className="hover:bg-navy-850/50 transition-colors">
+                  <tr key={idx} className="hover:bg-slate-50 transition-colors">
                     <td className="py-2 px-4">
-                      <div className="w-9 h-11 rounded overflow-hidden bg-navy-950 border border-navy-700 flex items-center justify-center">
+                      <div className="w-9 h-11 rounded overflow-hidden bg-slate-100 border border-slate-300 flex items-center justify-center shadow-xs">
                         {photoRef ? (
                           <img src={photoRef} alt="Avatar" className="w-full h-full object-cover" />
                         ) : (
-                          <User className="w-4 h-4 text-slate-500" />
+                          <User className="w-4 h-4 text-slate-400" />
                         )}
                       </div>
                     </td>
-                    <td className="py-3 px-4 font-bold text-cyan-400">
+                    <td className="py-3 px-4 font-bold text-blue-700">
                       {item.passport_number || item.person_id || item.visa_number || item.document_number || item.watchlist_id}
                     </td>
-                    <td className="py-3 px-4 font-sans font-bold text-white">
+                    <td className="py-3 px-4 font-sans font-bold text-slate-900">
                       {item.full_name || item.reason || item.visa_type || item.document_type}
                     </td>
-                    <td className="py-3 px-4 text-slate-300">
+                    <td className="py-3 px-4 text-slate-600">
                       {item.date_of_birth || item.issue_date || 'N/A'}
                     </td>
-                    <td className="py-3 px-4 text-slate-300">
+                    <td className="py-3 px-4 text-slate-600">
                       {item.nationality || 'IND'}
                     </td>
                     <td className="py-3 px-4">
@@ -210,7 +210,7 @@ export const DatabasePage: React.FC = () => {
                     <td className="py-3 px-4 text-right">
                       <button
                         onClick={() => setSelectedRecord(item)}
-                        className="px-2.5 py-1 rounded bg-navy-800 hover:bg-cyan-500/20 text-cyan-400 border border-navy-700 text-[10px] font-sans font-bold transition-colors cursor-pointer"
+                        className="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-[10px] font-sans font-bold transition-colors cursor-pointer"
                       >
                         View File
                       </button>
@@ -225,24 +225,24 @@ export const DatabasePage: React.FC = () => {
 
       {/* Record Inspector Drawer / Modal */}
       {selectedRecord && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-navy-900 border border-navy-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-navy-800 pb-3">
-              <div className="text-sm font-extrabold text-white flex items-center space-x-2">
-                <Database className="w-4 h-4 text-cyan-400" />
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
+                <Database className="w-4 h-4 text-blue-700" />
                 <span>Authorized Record Dossier</span>
               </div>
-              <button onClick={() => setSelectedRecord(null)} className="text-slate-400 hover:text-white">&times;</button>
+              <button onClick={() => setSelectedRecord(null)} className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer">&times;</button>
             </div>
 
             {selectedRecord.photo_reference && (
-              <div className="w-28 h-36 mx-auto rounded-lg overflow-hidden border border-navy-700 bg-navy-950 p-1">
+              <div className="w-28 h-36 mx-auto rounded-lg overflow-hidden border border-slate-300 bg-slate-100 p-1 shadow-sm">
                 <img src={selectedRecord.photo_reference} alt="Portrait" className="w-full h-full object-cover rounded" />
               </div>
             )}
 
             <div className="space-y-2 text-xs font-mono">
-              <pre className="p-3 rounded bg-navy-950 border border-navy-800 text-slate-300 overflow-x-auto text-[11px]">
+              <pre className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 overflow-x-auto text-[11px] leading-relaxed">
                 {JSON.stringify(selectedRecord, null, 2)}
               </pre>
             </div>
@@ -250,7 +250,7 @@ export const DatabasePage: React.FC = () => {
             <div className="flex justify-end">
               <button
                 onClick={() => setSelectedRecord(null)}
-                className="px-4 py-2 rounded bg-cyan-500 text-slate-950 text-xs font-bold"
+                className="px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold cursor-pointer shadow-sm"
               >
                 Close Dossier
               </button>
@@ -261,52 +261,52 @@ export const DatabasePage: React.FC = () => {
 
       {/* Add Record Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-navy-900 border border-navy-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-navy-800 pb-3">
-              <h3 className="text-sm font-extrabold text-white">Add Passport Record</h3>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-white">&times;</button>
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="text-sm font-extrabold text-slate-900">Add Passport Record</h3>
+              <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer">&times;</button>
             </div>
             <form onSubmit={handleAddPassport} className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-400 text-[10px] uppercase font-bold block mb-1">Full Name</label>
+                <label className="text-slate-700 text-[10px] uppercase font-bold block mb-1">Full Name</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Ramesh Kumar"
                   value={newRecord.full_name}
                   onChange={(e) => setNewRecord({ ...newRecord, full_name: e.target.value })}
-                  className="w-full bg-navy-950 border border-navy-750 rounded p-2 text-white"
+                  className="w-full bg-white border border-slate-300 rounded p-2 text-slate-900 focus:outline-none focus:border-blue-700 font-sans"
                 />
               </div>
               <div>
-                <label className="text-slate-400 text-[10px] uppercase font-bold block mb-1">Passport Number</label>
+                <label className="text-slate-700 text-[10px] uppercase font-bold block mb-1">Passport Number</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. P7788990"
                   value={newRecord.passport_number}
                   onChange={(e) => setNewRecord({ ...newRecord, passport_number: e.target.value })}
-                  className="w-full bg-navy-950 border border-navy-750 rounded p-2 text-white font-mono"
+                  className="w-full bg-white border border-slate-300 rounded p-2 text-slate-900 font-mono focus:outline-none focus:border-blue-700"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-400 text-[10px] uppercase font-bold block mb-1">Date of Birth</label>
+                  <label className="text-slate-700 text-[10px] uppercase font-bold block mb-1">Date of Birth</label>
                   <input
                     type="text"
                     required
                     value={newRecord.date_of_birth}
                     onChange={(e) => setNewRecord({ ...newRecord, date_of_birth: e.target.value })}
-                    className="w-full bg-navy-950 border border-navy-750 rounded p-2 text-white font-mono"
+                    className="w-full bg-white border border-slate-300 rounded p-2 text-slate-900 font-mono focus:outline-none focus:border-blue-700"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 text-[10px] uppercase font-bold block mb-1">Status</label>
+                  <label className="text-slate-700 text-[10px] uppercase font-bold block mb-1">Status</label>
                   <select
                     value={newRecord.status}
                     onChange={(e) => setNewRecord({ ...newRecord, status: e.target.value })}
-                    className="w-full bg-navy-950 border border-navy-750 rounded p-2 text-white font-mono"
+                    className="w-full bg-white border border-slate-300 rounded p-2 text-slate-900 font-mono focus:outline-none focus:border-blue-700"
                   >
                     <option value="VALID">VALID</option>
                     <option value="EXPIRED">EXPIRED</option>
@@ -319,13 +319,13 @@ export const DatabasePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded bg-navy-800 text-slate-300 text-xs font-bold"
+                  className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-300 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded bg-cyan-500 text-slate-950 text-xs font-bold"
+                  className="px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold cursor-pointer shadow-sm"
                 >
                   Save Record
                 </button>

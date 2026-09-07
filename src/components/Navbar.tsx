@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, ShieldAlert, Clock, UserCheck, AlertTriangle, Terminal, Cpu } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Clock, UserCheck, Shield, CheckCircle2, Globe } from 'lucide-react';
 import { PageView } from '../types';
 
 interface NavbarProps {
@@ -21,25 +21,29 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 bg-navy-900/90 backdrop-blur-md border-b border-navy-750">
-      {/* Top Security Advisory Banner */}
-      <div className="bg-gradient-to-r from-cyan-950/80 via-navy-900 to-navy-900 border-b border-cyan-500/20 px-4 py-1 flex items-center justify-between text-[11px] text-slate-300">
-        <div className="flex items-center space-x-2">
+    <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+      {/* Top Official Advisory Banner */}
+      <div className="bg-slate-900 border-b border-slate-800 px-4 py-1.5 flex items-center justify-between text-[11px] text-slate-300">
+        <div className="flex items-center space-x-2.5">
           <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
           </span>
-          <span className="font-semibold text-cyan-300 tracking-wider">AUTOMATED BORDER CONTROL SYSTEM</span>
-          <span className="text-slate-500">•</span>
-          <span className="text-emerald-400 font-semibold">AUTHORIZED VERIFICATION REGISTRY ACTIVE</span>
+          <span className="font-semibold text-slate-200 tracking-wider text-[10px] uppercase">
+            National Border Control & Identity Verification Portal
+          </span>
+          <span className="text-slate-600 hidden sm:inline">•</span>
+          <span className="text-emerald-400 font-medium hidden sm:inline flex items-center space-x-1">
+            <CheckCircle2 className="w-3 h-3 inline mr-0.5" />
+            Central Registry Connected
+          </span>
         </div>
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-1.5 text-cyan-400 font-mono text-[10px]">
-            <Cpu className="w-3 h-3" />
-            <span>PADDLEOCR + INSIGHTFACE v4</span>
+          <div className="hidden md:flex items-center space-x-1.5 text-slate-300 text-[10px]">
+            <Globe className="w-3 h-3 text-slate-400" />
+            <span>ICAO Doc 9303 Compliant</span>
           </div>
-          <div className="flex items-center space-x-1 text-slate-400 font-mono">
-            <Clock className="w-3 h-3 text-cyan-400" />
+          <div className="flex items-center space-x-1 text-slate-400 font-mono text-[11px]">
+            <Clock className="w-3 h-3 text-slate-400" />
             <span>{timeStr}</span>
           </div>
         </div>
@@ -52,34 +56,36 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
           className="flex items-center space-x-3 cursor-pointer group"
           onClick={() => setCurrentPage('landing')}
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform border border-cyan-400/40">
+          <div className="w-10 h-10 rounded-lg bg-blue-900 flex items-center justify-center shadow-sm border border-blue-800 group-hover:bg-blue-850 transition-colors">
             <ShieldCheck className="w-6 h-6 text-white" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-extrabold text-base tracking-tight text-white group-hover:text-cyan-300 transition-colors">
-                SECURE<span className="text-cyan-400">BORDER</span>
+              <span className="font-extrabold text-base tracking-tight text-slate-900 group-hover:text-blue-900 transition-colors">
+                SECURE<span className="text-blue-700">BORDER</span>
               </span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 font-mono font-bold">
-                AI SCREENING
+              <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 border border-slate-300 text-slate-700 font-semibold tracking-wide">
+                OFFICIAL PORTAL
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">Fake Identity & Document Screening System</p>
+            <p className="text-[11px] text-slate-500 font-medium">Border Control Document & Biometric Verification System</p>
           </div>
         </div>
 
-        {/* Quick Officer Identity Badge */}
+        {/* Quick Officer Identity Badge & Action */}
         <div className="flex items-center space-x-3">
-          <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-navy-850 border border-navy-700 text-xs">
-            <UserCheck className="w-4 h-4 text-cyan-400" />
+          <div className="hidden md:flex items-center space-x-2.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+            <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
+              <UserCheck className="w-4 h-4" />
+            </div>
             <div>
-              <div className="text-[10px] text-slate-400">INSPECTION OFFICER</div>
-              <div className="font-semibold font-mono text-slate-200">OFFICER-742 • GATE 04</div>
+              <div className="text-[10px] text-slate-500 font-medium">INSPECTION OFFICER</div>
+              <div className="font-bold text-slate-800 font-mono">OFFICER-742 • GATE 04</div>
             </div>
           </div>
           <button
             onClick={() => setCurrentPage('new_screening')}
-            className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs tracking-wide shadow-md shadow-cyan-500/25 transition-all flex items-center space-x-1.5 active:scale-95"
+            className="px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-semibold text-xs tracking-wide shadow-sm hover:shadow transition-all flex items-center space-x-2 active:scale-95 cursor-pointer"
           >
             <ShieldAlert className="w-4 h-4" />
             <span>START SCREENING</span>
@@ -89,3 +95,4 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, setCurrentPage }) =
     </header>
   );
 };
+

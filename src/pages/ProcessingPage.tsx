@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Cpu,
   CheckCircle2,
   Loader2,
   Scan,
@@ -9,7 +8,7 @@ import {
   ScanFace,
   Database,
   ShieldAlert,
-  Sparkles,
+  ShieldCheck,
   AlertTriangle,
   RefreshCw,
   ArrowLeft,
@@ -31,18 +30,18 @@ export const ProcessingPage: React.FC<ProcessingPageProps> = ({
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [progress, setProgress] = useState(10);
   const [apiResult, setApiResult] = useState<AnalysisResult | null>(null);
-  const [statusMessage, setStatusMessage] = useState('Initializing AI screening microservices...');
+  const [statusMessage, setStatusMessage] = useState('Initializing credential verification modules...');
   const [errorInfo, setErrorInfo] = useState<{ error: string; message: string } | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
 
   const pipelineSteps = [
-    { name: "Image Quality Assessment (IQA)", detail: "Resolution, blur, contrast, and framing analysis", icon: Scan },
-    { name: "PaddleOCR & MRZ Extraction", detail: "Deep text line detection and ICAO 9303 check digit math", icon: FileSearch },
-    { name: "Document Validation Engine", detail: "Evaluating document schema, validity dates, and format", icon: CheckCircle2 },
-    { name: "AI Tampering Detection (ELA)", detail: "Error Level Analysis, substrate noise disparity, and boundary splicing", icon: Eye },
-    { name: "InsightFace Biometric Verification", detail: "ArcFace 512-D landmark alignment and anti-spoofing liveness", icon: ScanFace },
-    { name: "Authorized Database Query", detail: "Cross-referencing civil registry, visas, and Interpol watchlists", icon: Database },
-    { name: "Multi-Modal Risk Assessment", detail: "Weighted composite risk calculation and explainability generation", icon: ShieldAlert }
+    { name: "Image Quality Assessment (IQA)", detail: "Resolution, clarity, contrast, and framing analysis", icon: Scan },
+    { name: "OCR & MRZ Extraction", detail: "Biographical text parsing and ICAO 9303 check digit calculation", icon: FileSearch },
+    { name: "Document Structure & Checksum", detail: "Evaluating document schema, validity dates, and format", icon: CheckCircle2 },
+    { name: "Forensic Tampering & ELA", detail: "Error Level Analysis, compression artifacts, and edge disparity", icon: Eye },
+    { name: "Biometric Facial Verification", detail: "Facial landmark detection, alignment, and 1:1 cosine matching", icon: ScanFace },
+    { name: "Authorized Registry Query", detail: "Cross-referencing civil registry, visas, and watchlist records", icon: Database },
+    { name: "Composite Risk Calculation", detail: "Weighted decision scoring and automated explainability generation", icon: ShieldAlert }
   ];
 
   // Primary screening caller with retry capability
@@ -51,7 +50,7 @@ export const ProcessingPage: React.FC<ProcessingPageProps> = ({
     setIsRetrying(true);
     setCurrentStepIndex(0);
     setProgress(15);
-    setStatusMessage('Initiating neural models and optical computer vision engines...');
+    setStatusMessage('Executing automated optical analysis and biometric verification engines...');
 
     try {
       const res = await fetch('/api/screening/analyze', {
@@ -66,9 +65,9 @@ export const ProcessingPage: React.FC<ProcessingPageProps> = ({
         // Corrupted image error or decode failure
         setErrorInfo({
           error: data.error || 'CORRUPTED_IMAGE',
-          message: data.message || 'The uploaded credential image is damaged, corrupted, or could not be decoded.'
+          message: data.message || 'The uploaded credential image is damaged, unreadable, or could not be decoded.'
         });
-        setStatusMessage('Screening halted: Corrupted image stream detected.');
+        setStatusMessage('Screening halted: Image decode failure.');
         return;
       }
 
@@ -79,9 +78,9 @@ export const ProcessingPage: React.FC<ProcessingPageProps> = ({
       console.error('Analysis execution error:', err);
       setErrorInfo({
         error: 'NETWORK_ERROR',
-        message: err.message || 'Unable to connect to AI screening microservices. Please verify server connectivity.'
+        message: err.message || 'Unable to communicate with verification services. Please check connection.'
       });
-      setStatusMessage('Screening halted: Network or service communication error.');
+      setStatusMessage('Screening halted: Service communication error.');
     } finally {
       setIsRetrying(false);
     }
@@ -122,7 +121,7 @@ export const ProcessingPage: React.FC<ProcessingPageProps> = ({
   useEffect(() => {
     if (!errorInfo && currentStepIndex >= pipelineSteps.length - 1 && apiResult) {
       setProgress(100);
-      setStatusMessage('Analysis Complete! Generating Officer Forensic Report...');
+      setStatusMessage('Verification Complete! Loading Forensic Report...');
       const timeout = setTimeout(() => {
         onAnalysisComplete(apiResult);
         setCurrentPage('officer_analysis');
@@ -132,38 +131,37 @@ export const ProcessingPage: React.FC<ProcessingPageProps> = ({
   }, [currentStepIndex, apiResult, errorInfo, onAnalysisComplete, setCurrentPage]);
 
   return (
-    <div className="max-w-3xl mx-auto py-8 space-y-8">
+    <div className="max-w-3xl mx-auto py-8 space-y-8 pb-16">
       {/* Top Animation & Ticker */}
       <div className="text-center space-y-4">
         <div className="relative inline-flex items-center justify-center">
-          <div className="w-20 h-20 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-            <Cpu className="w-10 h-10 animate-pulse" />
+          <div className="w-16 h-16 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 shadow-sm">
+            <ShieldCheck className="w-8 h-8" />
           </div>
-          <span className="absolute -top-1 -right-1 flex h-4 w-4">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-4 w-4 bg-cyan-500"></span>
+          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-blue-600"></span>
           </span>
         </div>
 
         <div>
-          <div className="inline-flex items-center space-x-1.5 px-3 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono text-xs font-bold mb-2">
-            <Sparkles className="w-3 h-3" />
-            <span>RUNNING PARALLEL AI ANALYSIS PIPELINE</span>
+          <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-md bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold mb-2">
+            <span>AUTOMATED VERIFICATION IN PROGRESS</span>
           </div>
-          <h2 className="text-2xl font-black text-white">Screening Identity Credential</h2>
-          <p className="text-xs text-slate-400 font-mono mt-1">{statusMessage}</p>
+          <h2 className="text-2xl font-bold text-slate-900">Screening Travel Credentials</h2>
+          <p className="text-xs text-slate-500 mt-1">{statusMessage}</p>
         </div>
 
         {/* Dynamic Progress Bar */}
         <div className="max-w-md mx-auto space-y-1.5">
-          <div className="w-full bg-navy-850 h-2.5 rounded-full overflow-hidden border border-navy-750">
+          <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
             <div
-              className="bg-gradient-to-r from-cyan-500 via-blue-500 to-emerald-400 h-full rounded-full transition-all duration-300 shadow-sm shadow-cyan-500/50"
+              className="bg-blue-700 h-full rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             ></div>
           </div>
           <div className="flex justify-between text-[11px] font-mono text-slate-500">
-            <span>MODELS ACTIVE: 7</span>
+            <span>VERIFICATION PIPELINE</span>
             <span>{progress}%</span>
           </div>
         </div>
@@ -171,24 +169,24 @@ export const ProcessingPage: React.FC<ProcessingPageProps> = ({
 
       {/* Corrupted Image Error Fallback Card */}
       {errorInfo && (
-        <div className="rounded-2xl border border-red-500/50 bg-gradient-to-b from-red-950/70 to-navy-950 p-6 md:p-8 shadow-2xl shadow-red-500/10 space-y-6 text-center animate-fade-in">
-          <div className="w-16 h-16 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 mx-auto">
-            <AlertTriangle className="w-8 h-8 animate-bounce" />
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6 md:p-8 shadow-sm space-y-6 text-center animate-fade-in">
+          <div className="w-14 h-14 rounded-xl bg-red-100 border border-red-200 flex items-center justify-center text-red-600 mx-auto">
+            <AlertTriangle className="w-7 h-7" />
           </div>
 
           <div className="space-y-2 max-w-lg mx-auto">
-            <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 font-mono text-xs font-bold">
+            <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-md bg-red-100 border border-red-200 text-red-800 text-xs font-semibold">
               <XCircle className="w-3.5 h-3.5" />
-              <span>SCREENING HALTED • {errorInfo.error}</span>
+              <span>INSPECTION HALTED • {errorInfo.error}</span>
             </div>
-            <h3 className="text-xl font-bold text-white">
-              Corrupted or Unreadable Image Stream
+            <h3 className="text-lg font-bold text-slate-900">
+              Unreadable or Corrupted Image
             </h3>
-            <p className="text-xs text-red-200/80 leading-relaxed font-sans">
+            <p className="text-xs text-red-900 leading-relaxed font-sans">
               {errorInfo.message}
             </p>
-            <p className="text-[11px] text-slate-400 font-mono pt-1">
-              The optical decoders could not construct valid pixel arrays from the input payload. Please retry or upload an uncorrupted JPEG/PNG image.
+            <p className="text-[11px] text-slate-600 pt-1">
+              The optical parser could not construct valid pixel arrays from the input payload. Please retry or upload a clean JPEG/PNG document image.
             </p>
           </div>
 
@@ -197,15 +195,15 @@ export const ProcessingPage: React.FC<ProcessingPageProps> = ({
             <button
               onClick={() => executeScreening()}
               disabled={isRetrying}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-amber-500 hover:from-red-400 hover:to-amber-400 text-slate-950 font-bold text-xs flex items-center space-x-2 shadow-lg shadow-red-500/20 cursor-pointer transition-all disabled:opacity-50"
+              className="px-5 py-2.5 rounded-lg bg-red-700 hover:bg-red-800 text-white font-semibold text-xs flex items-center space-x-2 shadow-sm cursor-pointer transition-all disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${isRetrying ? 'animate-spin' : ''}`} />
-              <span>{isRetrying ? 'Retrying Screening...' : 'Try Again (Retry Screening)'}</span>
+              <span>{isRetrying ? 'Retrying...' : 'Retry Verification'}</span>
             </button>
 
             <button
               onClick={() => setCurrentPage('new_screening')}
-              className="px-5 py-2.5 rounded-xl bg-navy-850 hover:bg-navy-800 border border-navy-700 text-slate-200 font-bold text-xs flex items-center space-x-2 cursor-pointer transition-all"
+              className="px-5 py-2.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold text-xs flex items-center space-x-2 cursor-pointer transition-all shadow-sm"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Re-upload Document</span>
@@ -215,7 +213,7 @@ export const ProcessingPage: React.FC<ProcessingPageProps> = ({
       )}
 
       {/* Pipeline Steps Cards */}
-      <div className="rounded-xl bg-navy-900 border border-navy-750 divide-y divide-navy-800/80 overflow-hidden shadow-xl">
+      <div className="rounded-xl bg-white border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-sm">
         {pipelineSteps.map((step, idx) => {
           const Icon = step.icon;
           const isDone = idx < currentStepIndex || progress === 100;
@@ -226,45 +224,47 @@ export const ProcessingPage: React.FC<ProcessingPageProps> = ({
               key={step.name}
               className={`p-4 flex items-center justify-between transition-colors ${
                 isCurrent
-                  ? 'bg-cyan-500/10 text-white'
+                  ? 'bg-blue-50/70 text-slate-900'
                   : isDone
-                  ? 'bg-navy-900/40 text-slate-300'
-                  : 'bg-navy-950/20 text-slate-500 opacity-60'
+                  ? 'bg-white text-slate-800'
+                  : 'bg-slate-50/50 text-slate-400'
               }`}
             >
               <div className="flex items-center space-x-4">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
                   isCurrent
-                    ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30'
+                    ? 'bg-blue-700 text-white shadow-sm'
                     : isDone
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-navy-800 text-slate-500'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-slate-100 text-slate-400'
                 }`}>
                   <Icon className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="text-xs font-bold flex items-center space-x-2">
-                    <span>{step.name}</span>
+                    <span className={isDone ? 'text-slate-900' : isCurrent ? 'text-blue-900 font-bold' : 'text-slate-500'}>
+                      {step.name}
+                    </span>
                     {isCurrent && (
-                      <span className="text-[10px] text-cyan-400 font-mono font-bold animate-pulse">
-                        [PROCESSING...]
+                      <span className="text-[10px] text-blue-700 font-mono font-bold">
+                        [IN PROGRESS]
                       </span>
                     )}
                   </div>
-                  <div className="text-[11px] text-slate-400">{step.detail}</div>
+                  <div className="text-[11px] text-slate-500">{step.detail}</div>
                 </div>
               </div>
 
               <div>
                 {isDone ? (
-                  <span className="flex items-center space-x-1 text-emerald-400 text-xs font-bold font-mono">
+                  <span className="flex items-center space-x-1 text-emerald-700 text-xs font-semibold">
                     <CheckCircle2 className="w-4 h-4" />
-                    <span className="hidden sm:inline">PASSED</span>
+                    <span className="hidden sm:inline">COMPLETED</span>
                   </span>
                 ) : isCurrent ? (
-                  <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
+                  <Loader2 className="w-4 h-4 text-blue-700 animate-spin" />
                 ) : (
-                  <span className="text-[10px] font-mono text-slate-600">PENDING</span>
+                  <span className="text-[10px] font-mono text-slate-400">PENDING</span>
                 )}
               </div>
             </div>
@@ -274,3 +274,4 @@ export const ProcessingPage: React.FC<ProcessingPageProps> = ({
     </div>
   );
 };
+

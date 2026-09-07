@@ -12,7 +12,9 @@ import {
   User,
   ShieldAlert,
   Sliders,
-  HelpCircle
+  HelpCircle,
+  ShieldCheck,
+  Globe
 } from 'lucide-react';
 import { PageView } from '../types';
 
@@ -76,7 +78,7 @@ export const NewScreeningPage: React.FC<NewScreeningPageProps> = ({
       }
     } catch (err) {
       console.error('Camera access error', err);
-      alert('Camera permission not granted or device not found. You can upload a live face selfie file instead.');
+      alert('Camera permission not granted or device not found. You can upload a live face photo instead.');
       setIsCameraActive(false);
     }
   };
@@ -108,7 +110,7 @@ export const NewScreeningPage: React.FC<NewScreeningPageProps> = ({
 
   const handleSubmit = () => {
     if (!docImage) {
-      alert('Please upload any document image (Passport, National ID, Driving Licence) to begin screening.');
+      alert('Please upload a physical document image (Passport, National ID, Driving Licence) to begin screening.');
       return;
     }
 
@@ -125,28 +127,28 @@ export const NewScreeningPage: React.FC<NewScreeningPageProps> = ({
   };
 
   return (
-    <div className="space-y-8 pb-16">
+    <div className="space-y-6 pb-16">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2 text-cyan-400 font-mono text-xs font-bold uppercase tracking-wider">
-            <ScanFace className="w-4 h-4" />
-            <span>Checkpoint Capture Layer</span>
+          <div className="flex items-center space-x-2 text-blue-700 text-xs font-semibold uppercase tracking-wider">
+            <ShieldCheck className="w-4 h-4" />
+            <span>Inspection Terminal Capture</span>
           </div>
-          <h1 className="text-2xl font-black text-white mt-1">Initiate New Identity Screening</h1>
-          <p className="text-xs text-slate-400">
-            Upload ANY passport or document image. PaddleOCR will separate the text fields, cross-check against the Authorized Database, and InsightFace will verify the face.
+          <h1 className="text-2xl font-bold text-slate-900 mt-1">Initiate Document & Biometric Screening</h1>
+          <p className="text-xs text-slate-500">
+            Upload travel document credentials and traveler portrait for automated OCR extraction, database verification, and biometric cross-matching.
           </p>
         </div>
       </div>
 
       {/* Main Form Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Document Upload (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
           {/* Document Type Selector */}
-          <div className="rounded-xl bg-navy-900 border border-navy-750 p-5 space-y-3">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+          <div className="rounded-xl bg-white border border-slate-200 p-5 space-y-3 shadow-sm">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
               Document Classification
             </label>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
@@ -155,10 +157,10 @@ export const NewScreeningPage: React.FC<NewScreeningPageProps> = ({
                   key={type}
                   type="button"
                   onClick={() => setDocType(type)}
-                  className={`py-2 px-1 text-center rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                  className={`py-2 px-1 text-center rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
                     docType === type
-                      ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-sm'
-                      : 'bg-navy-850 hover:bg-navy-800 border-navy-750 text-slate-300'
+                      ? 'bg-blue-50 border-blue-600 text-blue-900 shadow-sm'
+                      : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
                   }`}
                 >
                   {type}
@@ -168,38 +170,38 @@ export const NewScreeningPage: React.FC<NewScreeningPageProps> = ({
           </div>
 
           {/* Document Upload Box */}
-          <div className="rounded-xl bg-navy-900 border border-navy-750 p-6 space-y-4">
+          <div className="rounded-xl bg-white border border-slate-200 p-6 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
                 1. Upload Physical Document Image
               </label>
               {docImage && (
-                <span className="text-[11px] text-emerald-400 font-mono flex items-center space-x-1">
+                <span className="text-[11px] text-emerald-700 font-semibold flex items-center space-x-1">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Image Loaded</span>
+                  <span>Document Attached</span>
                 </span>
               )}
             </div>
 
             {/* Drop / Preview Area */}
-            <div className="relative border-2 border-dashed border-navy-700 hover:border-cyan-500/50 rounded-xl p-6 text-center transition-all bg-navy-950/50 flex flex-col items-center justify-center min-h-[220px]">
+            <div className="relative border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-6 text-center transition-all bg-slate-50/50 flex flex-col items-center justify-center min-h-[220px]">
               {docImage ? (
                 <div className="space-y-3 w-full flex flex-col items-center">
-                  <div className="relative rounded-lg overflow-hidden border border-navy-700 max-h-52 shadow-lg">
+                  <div className="relative rounded-lg overflow-hidden border border-slate-300 max-h-56 shadow-sm">
                     <img
                       src={docImage}
                       alt="Document Preview"
-                      className="max-h-52 object-contain rounded"
+                      className="max-h-56 object-contain rounded"
                     />
-                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 text-[10px] font-mono text-cyan-400 border border-cyan-400/30">
+                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-slate-900/80 text-[10px] text-white font-medium">
                       DOCUMENT SCAN
                     </div>
                   </div>
-                  <div className="text-xs text-slate-300 font-mono">
-                    {docFileName || 'custom_document.jpg'} {docFileSize ? `• ${docFileSize}` : ''} • {docType}
+                  <div className="text-xs text-slate-600 font-medium">
+                    {docFileName || 'credential_document.jpg'} {docFileSize ? `• ${docFileSize}` : ''} • {docType}
                   </div>
-                  <label className="cursor-pointer text-xs text-cyan-400 hover:underline font-bold">
-                    <span>Upload a Different Image</span>
+                  <label className="cursor-pointer text-xs text-blue-700 hover:text-blue-800 hover:underline font-semibold">
+                    <span>Upload a Different Document Image</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -210,15 +212,15 @@ export const NewScreeningPage: React.FC<NewScreeningPageProps> = ({
                 </div>
               ) : (
                 <label className="cursor-pointer flex flex-col items-center space-y-3 py-4 w-full">
-                  <div className="w-12 h-12 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                  <div className="w-12 h-12 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700">
                     <UploadCloud className="w-6 h-6" />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-white">Click or Drag & Drop ANY Passport Image</div>
-                    <div className="text-xs text-slate-400 mt-0.5">PaddleOCR will detect characters, extract Name, Passport No, DOB, Expiry</div>
+                    <div className="text-sm font-bold text-slate-800">Click or Drag & Drop Document Image</div>
+                    <div className="text-xs text-slate-500 mt-0.5">Supports Passports, National IDs, Visas, and Permits (JPEG, PNG)</div>
                   </div>
-                  <span className="px-4 py-1.5 rounded-lg bg-navy-800 hover:bg-navy-750 text-slate-200 border border-navy-700 text-xs font-bold">
-                    Browse File from Computer
+                  <span className="px-4 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-semibold shadow-sm">
+                    Browse Files on Computer
                   </span>
                   <input
                     type="file"
@@ -231,17 +233,17 @@ export const NewScreeningPage: React.FC<NewScreeningPageProps> = ({
             </div>
 
             {/* Tampering Simulation Mode */}
-            <div className="pt-2 border-t border-navy-800 flex items-center justify-between text-xs">
-              <div className="flex items-center space-x-2 text-slate-400">
-                <Sliders className="w-4 h-4 text-cyan-400" />
+            <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+              <div className="flex items-center space-x-2 text-slate-600">
+                <Sliders className="w-4 h-4 text-slate-500" />
                 <span>Error Level Analysis Mode:</span>
               </div>
               <select
                 value={tamperingPreset}
                 onChange={(e) => setTamperingPreset(e.target.value)}
-                className="bg-navy-850 border border-navy-700 rounded-lg px-2.5 py-1 text-slate-200 text-xs font-mono focus:outline-none focus:border-cyan-500"
+                className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1 text-slate-800 text-xs focus:outline-none focus:border-blue-600 shadow-sm"
               >
-                <option value="AUTO">AUTO (CV Algorithm)</option>
+                <option value="AUTO">AUTO (Automated Forensics)</option>
                 <option value="CLEAN">Clean Document (Low ELA)</option>
                 <option value="PHOTO_TAMPERED">Photo Splicing (High ELA)</option>
                 <option value="TEXT_TAMPERED">Text Alteration (DOB Spliced)</option>
@@ -253,28 +255,28 @@ export const NewScreeningPage: React.FC<NewScreeningPageProps> = ({
 
         {/* Right Column: Live Face Scan / Photo Upload (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="rounded-xl bg-navy-900 border border-navy-750 p-6 space-y-4">
+          <div className="rounded-xl bg-white border border-slate-200 p-6 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <ScanFace className="w-4 h-4 text-cyan-400" />
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                  2. Traveler Face (Live Scan or Upload)
+                <ScanFace className="w-4 h-4 text-blue-700" />
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                  2. Traveler Facial Capture
                 </label>
               </div>
               {liveFaceImage && (
-                <span className="text-[11px] text-emerald-400 font-mono flex items-center space-x-1">
+                <span className="text-[11px] text-emerald-700 font-semibold flex items-center space-x-1">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Face Ready</span>
+                  <span>Face Captured</span>
                 </span>
               )}
             </div>
 
-            <p className="text-[11px] text-slate-400">
-              InsightFace extracts 512-D ArcFace embeddings from this face and compares it against the passport photo.
+            <p className="text-[11px] text-slate-500">
+              Live biometric image is compared against the credential photograph for 1:1 facial verification.
             </p>
 
             {/* Webcam / Snapshot Viewport */}
-            <div className="relative rounded-xl overflow-hidden bg-navy-950 border border-navy-750 aspect-video flex items-center justify-center">
+            <div className="relative rounded-xl overflow-hidden bg-slate-900 border border-slate-300 aspect-video flex items-center justify-center">
               {isCameraActive ? (
                 <>
                   <video
@@ -285,29 +287,29 @@ export const NewScreeningPage: React.FC<NewScreeningPageProps> = ({
                   />
                   {/* Biometric Oval Alignment Guide */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-32 h-44 border-2 border-cyan-400/70 rounded-[50%] flex items-center justify-center border-dashed">
-                      <div className="text-[10px] text-cyan-400 font-mono bg-black/60 px-1.5 py-0.5 rounded">
+                    <div className="w-32 h-44 border-2 border-white/75 rounded-[50%] flex items-center justify-center border-dashed">
+                      <div className="text-[10px] text-white font-medium bg-black/60 px-1.5 py-0.5 rounded">
                         ALIGN FACE
                       </div>
                     </div>
                   </div>
                 </>
               ) : liveFaceImage ? (
-                <div className="relative w-full h-full flex items-center justify-center p-2 bg-navy-950">
+                <div className="relative w-full h-full flex items-center justify-center p-2 bg-slate-100">
                   <img
                     src={liveFaceImage}
                     alt="Traveler Face"
                     className="max-h-full max-w-full object-contain rounded"
                   />
-                  <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/80 text-[10px] font-mono text-cyan-400 border border-cyan-400/30">
+                  <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-slate-900/80 text-[10px] text-white font-medium">
                     PORTRAIT LOADED
                   </div>
                 </div>
               ) : (
                 <div className="text-center p-4 space-y-2">
-                  <User className="w-10 h-10 text-slate-600 mx-auto" />
-                  <div className="text-xs text-slate-400">No traveler portrait loaded yet</div>
-                  <div className="text-[10px] text-slate-500">Scan live via WebCam or upload a selfie</div>
+                  <User className="w-10 h-10 text-slate-400 mx-auto" />
+                  <div className="text-xs text-slate-300">No traveler portrait loaded yet</div>
+                  <div className="text-[10px] text-slate-400">Capture live via camera or upload a portrait file</div>
                 </div>
               )}
               <canvas ref={canvasRef} className="hidden" />
@@ -320,15 +322,15 @@ export const NewScreeningPage: React.FC<NewScreeningPageProps> = ({
                   <button
                     type="button"
                     onClick={capturePhoto}
-                    className="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors flex items-center justify-center space-x-1.5 cursor-pointer"
+                    className="flex-1 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs transition-colors flex items-center justify-center space-x-1.5 cursor-pointer shadow-sm"
                   >
                     <Camera className="w-3.5 h-3.5" />
-                    <span>Capture Face</span>
+                    <span>Capture Photo</span>
                   </button>
                   <button
                     type="button"
                     onClick={stopCamera}
-                    className="py-2 px-3 rounded-lg bg-navy-800 hover:bg-navy-750 text-slate-300 text-xs font-bold border border-navy-700 cursor-pointer"
+                    className="py-2 px-3 rounded-lg bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-300 cursor-pointer shadow-sm"
                   >
                     Cancel
                   </button>
@@ -338,14 +340,14 @@ export const NewScreeningPage: React.FC<NewScreeningPageProps> = ({
                   <button
                     type="button"
                     onClick={startCamera}
-                    className="flex-1 py-2 rounded-lg bg-navy-850 hover:bg-navy-800 text-slate-200 border border-navy-700 text-xs font-bold flex items-center justify-center space-x-1.5 cursor-pointer transition-colors"
+                    className="flex-1 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-semibold flex items-center justify-center space-x-1.5 cursor-pointer transition-colors shadow-sm"
                   >
-                    <Camera className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Live WebCam Scan</span>
+                    <Camera className="w-3.5 h-3.5 text-blue-700" />
+                    <span>Live Camera Capture</span>
                   </button>
-                  <label className="flex-1 py-2 rounded-lg bg-navy-850 hover:bg-navy-800 text-slate-200 border border-navy-700 text-xs font-bold flex items-center justify-center space-x-1.5 cursor-pointer transition-colors">
-                    <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Upload Face Photo</span>
+                  <label className="flex-1 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-semibold flex items-center justify-center space-x-1.5 cursor-pointer transition-colors shadow-sm">
+                    <ImageIcon className="w-3.5 h-3.5 text-blue-700" />
+                    <span>Upload Portrait</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -358,17 +360,17 @@ export const NewScreeningPage: React.FC<NewScreeningPageProps> = ({
             </div>
           </div>
 
-          {/* Launch AI Screening Pipeline Button */}
+          {/* Launch Screening Button */}
           <div className="pt-2">
             <button
               onClick={handleSubmit}
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-sm tracking-wider shadow-xl shadow-cyan-500/25 transition-all flex items-center justify-center space-x-2 cursor-pointer active:scale-95"
+              className="w-full py-3.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-bold text-sm tracking-wide shadow-sm hover:shadow transition-all flex items-center justify-center space-x-2 cursor-pointer active:scale-95"
             >
-              <Play className="w-5 h-5 fill-slate-950" />
-              <span>RUN AI SCREENING PIPELINE</span>
+              <Play className="w-4 h-4 fill-white" />
+              <span>EXECUTE DOCUMENT VERIFICATION</span>
             </button>
-            <p className="text-[10px] text-slate-500 text-center mt-2 font-mono">
-              PaddleOCR Character Extraction &bull; DB Cross-Check &bull; InsightFace Embeddings
+            <p className="text-[11px] text-slate-500 text-center mt-2 font-medium">
+              OCR Field Extraction &bull; Central Registry Cross-Check &bull; Biometric Verification
             </p>
           </div>
         </div>
@@ -376,3 +378,4 @@ export const NewScreeningPage: React.FC<NewScreeningPageProps> = ({
     </div>
   );
 };
+

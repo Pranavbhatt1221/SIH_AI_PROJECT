@@ -49,26 +49,26 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectCase, setCurre
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2 text-cyan-400 font-mono text-xs font-bold uppercase tracking-wider">
+          <div className="flex items-center space-x-2 text-blue-700 font-mono text-xs font-bold uppercase tracking-wider">
             <History className="w-4 h-4" />
             <span>Inspection Archive</span>
           </div>
-          <h1 className="text-2xl font-black text-white mt-1">Screening Case History</h1>
-          <p className="text-xs text-slate-400">
+          <h1 className="text-2xl font-extrabold text-slate-900 mt-1">Screening Case History</h1>
+          <p className="text-xs text-slate-500">
             Persistent ledger of all processed travel documents and recorded officer determinations.
           </p>
         </div>
 
         <button
           onClick={() => setCurrentPage('new_screening')}
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs tracking-wide shadow-md transition-all self-start cursor-pointer"
+          className="px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs tracking-wide shadow-sm transition-all self-start cursor-pointer"
         >
           New Screening
         </button>
       </div>
 
       {/* Filter Tabs & Search Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-navy-750 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-3">
         <div className="flex items-center space-x-1.5 overflow-x-auto text-xs font-bold">
           {[
             { id: 'ALL', label: 'All Cases' },
@@ -82,8 +82,8 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectCase, setCurre
               onClick={() => setFilter(item.id)}
               className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                 filter === item.id
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                  : 'text-slate-400 hover:text-white hover:bg-navy-850'
+                  ? 'bg-blue-50 text-blue-800 border border-blue-200 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               {item.label}
@@ -98,17 +98,17 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectCase, setCurre
             placeholder="Search Case ID, Name, Passport..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-navy-900 border border-navy-750 rounded-lg pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-sans"
+            className="w-full bg-white border border-slate-300 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700 font-sans"
           />
         </div>
       </div>
 
       {/* History Table */}
-      <div className="rounded-xl bg-navy-900 border border-navy-750 overflow-hidden shadow-xl">
+      <div className="rounded-xl bg-white border border-slate-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs font-mono">
             <thead>
-              <tr className="border-b border-navy-800 bg-navy-850 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-600">
                 <th className="py-3 px-4">Case ID</th>
                 <th className="py-3 px-4">Date / Time</th>
                 <th className="py-3 px-4 font-sans">Traveler Name</th>
@@ -120,29 +120,29 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectCase, setCurre
                 <th className="py-3 px-4 text-right font-sans">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-navy-800/60">
+            <tbody className="divide-y divide-slate-200">
               {history.map((item) => (
                 <tr
                   key={item.case_id}
-                  className="hover:bg-navy-850/50 transition-colors cursor-pointer group"
+                  className="hover:bg-slate-50 transition-colors cursor-pointer group"
                   onClick={() => onSelectCase(item.case_id)}
                 >
-                  <td className="py-3.5 px-4 font-bold text-cyan-400 group-hover:underline">
+                  <td className="py-3.5 px-4 font-bold text-blue-700 group-hover:underline">
                     {item.case_id}
                   </td>
-                  <td className="py-3.5 px-4 text-slate-400 text-[11px]">
+                  <td className="py-3.5 px-4 text-slate-500 text-[11px]">
                     {new Date(item.timestamp).toLocaleString()}
                   </td>
-                  <td className="py-3.5 px-4 font-sans font-bold text-white">
+                  <td className="py-3.5 px-4 font-sans font-bold text-slate-900">
                     {item.person_name}
                   </td>
-                  <td className="py-3.5 px-4 text-slate-300">
-                    <span className="text-slate-400 text-[10px] block font-sans">{item.document_type}</span>
+                  <td className="py-3.5 px-4 text-slate-700">
+                    <span className="text-slate-500 text-[10px] block font-sans">{item.document_type}</span>
                     {item.document_number}
                   </td>
                   <td className="py-3.5 px-4">
                     <span className={`font-black ${
-                      item.risk_score >= 60 ? 'text-red-400' : item.risk_score >= 30 ? 'text-amber-400' : 'text-emerald-400'
+                      item.risk_score >= 60 ? 'text-red-700' : item.risk_score >= 30 ? 'text-amber-700' : 'text-emerald-700'
                     }`}>
                       {item.risk_score}/100
                     </span>
@@ -153,7 +153,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectCase, setCurre
                   <td className="py-3.5 px-4">
                     <Badge status={item.decision} />
                   </td>
-                  <td className="py-3.5 px-4 text-slate-400 text-[11px]">
+                  <td className="py-3.5 px-4 text-slate-500 text-[11px]">
                     {item.officer_id}
                   </td>
                   <td className="py-3.5 px-4 text-right">
@@ -162,7 +162,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectCase, setCurre
                         e.stopPropagation();
                         onSelectCase(item.case_id);
                       }}
-                      className="px-2.5 py-1 rounded bg-navy-800 hover:bg-cyan-500/20 text-cyan-400 border border-navy-700 text-[10px] font-sans font-bold transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-[10px] font-sans font-bold transition-colors cursor-pointer"
                     >
                       Open Case
                     </button>
