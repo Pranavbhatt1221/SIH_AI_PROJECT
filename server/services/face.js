@@ -53,6 +53,23 @@ function verifyFaces(docPhotoUrl, liveFaceUrl, dbPhotoUrl, demoScore = null, liv
   // If real AI face verification was computed by pythonBridge
   if (liveAiResult && liveAiResult.face_result) {
     const res = liveAiResult.face_result;
+    const scores = res.scores || {
+      overall_face_match_score: res.match_score,
+      doc_vs_live_score: res.match_score,
+      doc_vs_db_score: res.match_score,
+      live_vs_db_score: res.match_score
+    };
+
+    // Strict border security requirement: Overall confidence is the lowest score among the three pairs
+    let overallScore = scores.doc_vs_live_score;
+    if (res.db_face_detected && scores.live_vs_db_score !== undefined && scores.doc_vs_db_score !== undefined) {
+      overallScore = Math.min(scores.doc_vs_live_score, scores.live_vs_db_score, scores.doc_vs_db_score);
+    }
+    overallScore = Math.round(overallScore * 10) / 10;
+
+    const status = overallScore >= 75 ? "MATCH" : overallScore >= 55 ? "REVIEW" : "MISMATCH";
+    const statusColor = status === "MATCH" ? "GREEN" : status === "REVIEW" ? "YELLOW" : "RED";
+
     return {
       engine: res.engine || "OpenCV Deep Face Feature & ArcFace 512-D Cosine Pipeline",
       biometric_model: "ArcFace-r100 / Buffalo_sc",
@@ -72,32 +89,35 @@ function verifyFaces(docPhotoUrl, liveFaceUrl, dbPhotoUrl, demoScore = null, liv
         landmarks_tracked: 5
       },
       liveness: res.liveness || {
-        status: res.match_score >= 50 ? "PASS" : "REVIEW",
+        status: overallScore >= 50 ? "PASS" : "REVIEW",
         label: "Live Biometric Liveness Analysis",
         face_centered: true,
         motion_confirmed: true
       },
-      scores: res.scores || {
-        overall_face_match_score: res.match_score,
-        doc_vs_live_score: res.match_score,
-        doc_vs_db_score: res.match_score,
-        live_vs_db_score: res.match_score
+      scores: {
+        overall_face_match_score: overallScore,
+        doc_vs_live_score: scores.doc_vs_live_score,
+        doc_vs_db_score: scores.doc_vs_db_score,
+        live_vs_db_score: scores.live_vs_db_score
       },
       embedding_sample: res.embedding_sample || extractFacialEmbedding(docPhotoUrl, 1).slice(0, 16),
-      verification_status: res.verification_status,
-      status_color: res.status_color,
-      notice: "512-D deep embedding cosine similarity verified dynamically."
+      verification_status: status,
+      status_color: statusColor,
+      notice: "ArcFace 512-D deep feature & structural correlation verified (lowest pairwise score enforced)."
     };
   }
 
-  // 1. If explicit demo score provided (for the 5 hackathon demo cases fallback)
+  // 1. If explicit demo score provided
   if (demoScore !== null && demoScore !== undefined) {
     const matchScore = parseFloat(demoScore);
-    const status = matchScore >= 85 ? "MATCH" : matchScore >= 60 ? "REVIEW" : "MISMATCH";
+    const status = matchScore >= 75 ? "MATCH" : matchScore >= 55 ? "REVIEW" : "MISMATCH";
     return {
       engine: "InsightFace (RetinaFace + ArcFace 512-D Deep Features)",
       biometric_model: "ArcFace-r100 / Buffalo_sc",
       embedding_size: 512,
+      cropped_face_url: null,
+      live_face_crop_url: null,
+      db_face_crop_url: null,
       detection: {
         document_face_detected: true,
         document_face_confidence: 0.98,
@@ -125,51 +145,34 @@ function verifyFaces(docPhotoUrl, liveFaceUrl, dbPhotoUrl, demoScore = null, liv
     };
   }
 
-  // 2. Real dynamic embedding comparison for ANY custom uploaded images!
-  const embedDoc = extractFacialEmbedding(docPhotoUrl, 101);
-  const embedLive = extractFacialEmbedding(liveFaceUrl || docPhotoUrl, liveFaceUrl ? 202 : 101);
-  const embedDb = extractFacialEmbedding(dbPhotoUrl || docPhotoUrl, 303);
+  // 2. Real dynamic embedding comparison for fallback
+  const embedDoc = extractFacialEmbedding(docPhotoUrl, 42);
+  const embedLive = extractFacialEmbedding(liveFaceUrl || docPhotoUrl, 42);
+  const embedDb = extractFacialEmbedding(dbPhotoUrl || docPhotoUrl, 42);
 
-  // If docPhotoUrl and liveFaceUrl are the exact same image (e.g. user tested with single photo)
-  let rawSimilarity = 0.94;
-  if (docPhotoUrl && liveFaceUrl) {
-    if (docPhotoUrl === liveFaceUrl) {
-      rawSimilarity = 0.96;
-    } else {
-      // Calculate true cosine similarity between embeddings
-      const sim = computeCosineSimilarity(embedDoc, embedLive);
-      // Calibrated biometric threshold mapping
-      if (sim < 0.70) {
-        rawSimilarity = Math.max(0.05, (sim / 0.70) * 0.30);
-      } else if (sim < 0.91) {
-        rawSimilarity = 0.30 + ((sim - 0.70) / 0.21) * 0.25;
-      } else if (sim < 0.95) {
-        rawSimilarity = 0.60 + ((sim - 0.91) / 0.04) * 0.25;
-      } else {
-        rawSimilarity = 0.85 + Math.min(0.14, ((sim - 0.95) / 0.05) * 0.14);
-      }
-    }
-  }
+  const simDocLive = computeCosineSimilarity(embedDoc, embedLive);
+  const simDocDb = computeCosineSimilarity(embedDoc, embedDb);
+  const simLiveDb = computeCosineSimilarity(embedLive, embedDb);
 
-  const finalMatchScore = Math.round(rawSimilarity * 1000) / 10;
+  const toScore = (sim) => Math.round(Math.max(0.15, Math.min(0.99, (sim + 1) / 2)) * 1000) / 10;
+  const scoreDocLive = (docPhotoUrl === liveFaceUrl) ? 98.0 : toScore(simDocLive);
+  const scoreDocDb = (docPhotoUrl === dbPhotoUrl) ? 98.0 : toScore(simDocDb);
+  const scoreLiveDb = (liveFaceUrl === dbPhotoUrl) ? 98.0 : toScore(simLiveDb);
 
-  let status = "MATCH";
-  let statusColor = "GREEN";
-  if (finalMatchScore >= 85) {
-    status = "MATCH";
-    statusColor = "GREEN";
-  } else if (finalMatchScore >= 60) {
-    status = "REVIEW";
-    statusColor = "YELLOW";
-  } else {
-    status = "MISMATCH";
-    statusColor = "RED";
-  }
+  const finalMatchScore = dbPhotoUrl
+    ? Math.min(scoreDocLive, scoreDocDb, scoreLiveDb)
+    : scoreDocLive;
+
+  let status = finalMatchScore >= 75 ? "MATCH" : finalMatchScore >= 55 ? "REVIEW" : "MISMATCH";
+  let statusColor = status === "MATCH" ? "GREEN" : status === "REVIEW" ? "YELLOW" : "RED";
 
   return {
     engine: "InsightFace (RetinaFace + ArcFace 512-D Deep Features)",
     biometric_model: "ArcFace-r100 / Buffalo_sc",
     embedding_size: 512,
+    cropped_face_url: null,
+    live_face_crop_url: null,
+    db_face_crop_url: null,
     detection: {
       document_face_detected: true,
       document_face_confidence: 0.97,
@@ -186,9 +189,9 @@ function verifyFaces(docPhotoUrl, liveFaceUrl, dbPhotoUrl, demoScore = null, liv
     },
     scores: {
       overall_face_match_score: finalMatchScore,
-      doc_vs_live_score: finalMatchScore,
-      doc_vs_db_score: finalMatchScore,
-      live_vs_db_score: finalMatchScore
+      doc_vs_live_score: scoreDocLive,
+      doc_vs_db_score: scoreDocDb,
+      live_vs_db_score: scoreLiveDb
     },
     embedding_sample: embedDoc.slice(0, 16),
     verification_status: status,

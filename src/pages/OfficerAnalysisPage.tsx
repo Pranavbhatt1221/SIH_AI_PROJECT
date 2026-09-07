@@ -40,6 +40,7 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'forensics' | 'biometrics' | 'database' | 'raw_ocr'>('overview');
   const [showElaView, setShowElaView] = useState(false);
+  const [elaOpacity, setElaOpacity] = useState<number>(100);
   const [selectedDecision, setSelectedDecision] = useState<'PASS' | 'REVIEW' | 'FAIL'>(analysis.recommended_decision || 'PASS');
   const [officerRemarks, setOfficerRemarks] = useState(
     analysis.recommended_decision === 'PASS'
@@ -80,7 +81,7 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           preset: mode,
-          docPhotoUrl: analysis.images.document_photo
+          docPhotoUrl: analysis.images.document_preview || analysis.images.document_photo
         })
       });
       const data = await res.json();
@@ -627,101 +628,140 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
               </div>
             </div>
 
-            {/* ── VERDICT BANNER ─────────────────────────────────────────────── */}
-            {(currentTampering.tampering_detected || currentTampering.tampering_score >= 60) ? (
-              <div className="flex items-center space-x-3 rounded-xl bg-red-950/70 border border-red-500/50 px-4 py-3 shadow-lg shadow-red-500/10">
-                <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
-                  <ShieldAlert className="w-5 h-5 text-red-400" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-black text-red-400 tracking-wide uppercase">
-                    ⚠ Tampering / Forgery Detected
+            {/* Side-by-side or Toggled ELA Display */}
+            {!showElaView ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                    <span>DOCUMENT SCAN</span>
+                    <span className="text-[10px] text-slate-400">ORIGINAL SUBSTRATE</span>
                   </div>
-                  <div className="text-[11px] text-red-300/80 mt-0.5">
-                    {currentTampering.category || 'Digital or textual alteration detected on this document.'} — Score: {currentTampering.tampering_score}/100
+                  <div className="rounded-xl overflow-hidden bg-navy-950 border border-navy-750 p-2 flex items-center justify-center min-h-[260px]">
+                    <img
+                      src={analysis.images.document_preview || analysis.images.document_photo}
+                      alt="Original"
+                      className="max-h-60 object-contain rounded"
+                    />
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs font-black text-red-400 font-mono">{currentTampering.tampering_score}/100</div>
-                  <div className="text-[10px] text-red-400/70 font-mono">HIGH RISK</div>
+
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                    <span className="text-amber-400 flex items-center space-x-1">
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>ERROR LEVEL ANALYSIS (ELA) HEATMAP</span>
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-mono">
+                      {tamperingMode === 'AUTO' ? 'RESAVED Q=90' : `SIMULATED: ${tamperingMode}`}
+                    </span>
+                  </div>
+                  <div className="relative rounded-xl overflow-hidden bg-navy-950 border border-navy-750 p-2 flex items-center justify-center min-h-[260px]">
+                    {isUpdatingTampering && (
+                      <div className="absolute inset-0 bg-navy-950/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center space-y-2">
+                        <RefreshCw className="w-6 h-6 text-cyan-400 animate-spin" />
+                        <span className="text-xs font-mono text-cyan-300">Recomputing ELA Heatmap (Q=90)...</span>
+                      </div>
+                    )}
+                    <img
+                      src={currentTampering.ela_heatmap_url || analysis.images.ela_heatmap}
+                      alt="ELA Heatmap"
+                      className="max-h-60 object-contain rounded shadow-lg"
+                    />
+                  </div>
+
+                  {/* ELA Thermal Spectrum Legend Bar */}
+                  <div className="p-3 rounded-lg bg-navy-950 border border-navy-800 space-y-2">
+                    <div className="flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-slate-400 font-semibold uppercase tracking-wider">Compression Error Scale</span>
+                      <span className="text-cyan-400">Jet Colormap (γ=0.45 Exp.)</span>
+                    </div>
+
+                    {/* Gradient bar */}
+                    <div className="h-3 w-full rounded-full bg-gradient-to-r from-blue-700 via-cyan-400 via-emerald-400 via-yellow-400 to-red-600 shadow-inner border border-navy-700"></div>
+
+                    <div className="grid grid-cols-4 text-[10px] text-slate-400 font-mono text-center pt-0.5">
+                      <div className="text-left text-blue-300">
+                        <span className="block font-bold">0% - 25%</span>
+                        <span className="text-[9px] text-slate-500">Uniform Substrate</span>
+                      </div>
+                      <div className="text-cyan-300">
+                        <span className="block font-bold">25% - 50%</span>
+                        <span className="text-[9px] text-slate-500">Substrate Texture</span>
+                      </div>
+                      <div className="text-yellow-300">
+                        <span className="block font-bold">50% - 75%</span>
+                        <span className="text-[9px] text-slate-500">Natural Typography</span>
+                      </div>
+                      <div className="text-right text-red-400">
+                        <span className="block font-bold">75% - 100%</span>
+                        <span className="text-[9px] text-red-400/80">Discontinuity / Spliced</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
-              <div className="flex items-center space-x-3 rounded-xl bg-emerald-950/70 border border-emerald-500/40 px-4 py-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-black text-emerald-400 tracking-wide uppercase">Document Authentic</div>
-                  <div className="text-[11px] text-emerald-300/80 mt-0.5">
-                    No pixel-level manipulation, splice seams, or compression anomalies detected. — Score: {currentTampering.tampering_score}/100
+              /* Enhanced ELA Forensic Overlay & Focus Mode */
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-navy-900 border border-navy-750">
+                  <div className="flex items-center space-x-2">
+                    <Sliders className="w-4 h-4 text-amber-400" />
+                    <span className="text-xs font-bold text-slate-200">Forensic Overlay Transparency:</span>
+                    <span className="text-xs font-mono font-bold text-amber-400">{elaOpacity}% Heatmap</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-[10px] font-mono text-slate-400">Substrate</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={elaOpacity}
+                      onChange={(e) => setElaOpacity(Number(e.target.value))}
+                      className="w-36 sm:w-48 h-1.5 bg-navy-700 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                    />
+                    <span className="text-[10px] font-mono text-amber-400">Heatmap</span>
+                    <div className="flex space-x-1 pl-2 border-l border-navy-700">
+                      <button
+                        onClick={() => setElaOpacity(0)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-mono ${elaOpacity === 0 ? 'bg-cyan-500 text-slate-950 font-bold' : 'bg-navy-800 text-slate-400 hover:text-white'}`}
+                      >
+                        0%
+                      </button>
+                      <button
+                        onClick={() => setElaOpacity(50)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-mono ${elaOpacity === 50 ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-navy-800 text-slate-400 hover:text-white'}`}
+                      >
+                        50%
+                      </button>
+                      <button
+                        onClick={() => setElaOpacity(100)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-mono ${elaOpacity === 100 ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-navy-800 text-slate-400 hover:text-white'}`}
+                      >
+                        100%
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs font-black text-emerald-400 font-mono">{currentTampering.tampering_score}/100</div>
-                  <div className="text-[10px] text-emerald-400/70 font-mono">LOW RISK</div>
-                </div>
-              </div>
-            )}
 
-            {/* ── VIZ-MRZ SEMANTIC FORGERY CALLOUT ──────────────────────────── */}
-            {/* Shown when a VIZ-MRZ mismatch drives the verdict (ELA pixel checks may still be PASS) */}
-            {currentTampering.anomalies?.some(
-              (a: any) => a.label === 'Visual Zone vs MRZ Identity Consistency' && a.status === 'FAIL'
-            ) && (
-              <div className="rounded-xl bg-amber-950/60 border border-amber-500/40 p-4 space-y-2">
-                <div className="flex items-center space-x-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                  <span className="text-xs font-black text-amber-400 uppercase tracking-wide">
-                    Semantic / Textual Forgery — Why ELA Shows PASS
-                  </span>
-                </div>
-                <p className="text-[11px] text-amber-200/80 leading-relaxed">
-                  The pixel-level ELA heatmap shows <strong className="text-amber-300">PASS</strong> because the image was
-                  not digitally manipulated at the pixel level — no splice seams or JPEG re-compression artifacts exist.
-                  However, a <strong className="text-red-400">CRITICAL TEXTUAL FORGERY</strong> was detected:
-                  the <strong className="text-white">printed biographical name in the Visual Inspection Zone (VIZ)</strong> does
-                  not match the <strong className="text-white">machine-readable MRZ encoding</strong>.
-                  This type of forgery (physical text alteration, white-out, or re-printing) cannot be caught by ELA alone
-                  and is correctly detected by the VIZ ↔ MRZ cross-validation engine.
-                </p>
-                <div className="text-[10px] font-mono text-amber-400/70 bg-amber-500/10 rounded px-2 py-1">
-                  ICAO Doc 9303 §4.3 — VIZ biographical data must correspond exactly to MRZ encoding. Mismatch = FORGERY.
-                </div>
-              </div>
-            )}
-
-            {/* Side-by-side or Toggled ELA Display */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <div className="text-xs font-bold text-slate-300 flex items-center justify-between">
-                  <span>DOCUMENT SCAN</span>
-                  <span className="text-[10px] text-slate-400">ORIGINAL SUBSTRATE</span>
-                </div>
-                <div className="rounded-xl overflow-hidden bg-navy-950 border border-navy-750 p-2 flex items-center justify-center min-h-[260px]">
+                <div className="relative rounded-2xl overflow-hidden bg-navy-950 border border-navy-750 p-4 flex items-center justify-center min-h-[380px]">
+                  {isUpdatingTampering && (
+                    <div className="absolute inset-0 bg-navy-950/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center space-y-2">
+                      <RefreshCw className="w-8 h-8 text-cyan-400 animate-spin" />
+                      <span className="text-sm font-mono text-cyan-300">Recalculating Forensic Superimposition...</span>
+                    </div>
+                  )}
+                  {/* Base Document */}
                   <img
-                    src={analysis.images.document_preview}
-                    alt="Original"
-                    className="max-h-60 object-contain rounded"
+                    src={analysis.images.document_preview || analysis.images.document_photo}
+                    alt="Document Scan"
+                    className="max-h-[360px] object-contain rounded-lg"
                   />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-xs font-bold text-slate-300 flex items-center justify-between">
-                  <span className="text-amber-400 flex items-center space-x-1">
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>ERROR LEVEL ANALYSIS (ELA) HEATMAP</span>
-                  </span>
-                  <span className="text-[10px] text-amber-400 font-mono">
-                    {tamperingMode === 'AUTO' ? 'RESAVED Q=90' : `SIMULATED: ${tamperingMode}`}
-                  </span>
-                </div>
-                <div className="rounded-xl overflow-hidden bg-navy-950 border border-navy-750 p-2 flex items-center justify-center min-h-[260px]">
+                  {/* Heatmap Overlay */}
                   <img
-                    src={currentTampering.ela_heatmap_url}
-                    alt="ELA Heatmap"
-                    className="max-h-60 object-contain rounded"
+                    src={currentTampering.ela_heatmap_url || analysis.images.ela_heatmap}
+                    alt="ELA Overlay"
+                    style={{ opacity: elaOpacity / 100 }}
+                    className="absolute max-h-[360px] object-contain rounded-lg pointer-events-none transition-opacity duration-150"
                   />
                 </div>
 
@@ -755,7 +795,7 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* How ELA Works Forensic Guide */}
             <div className="p-4 rounded-xl bg-navy-950/70 border border-navy-800/80 space-y-2 text-xs">
@@ -837,6 +877,9 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
                     src={analysis.images.document_photo}
                     alt="Document Portrait"
                     className="w-full h-full object-cover rounded"
+                    style={{
+                      objectPosition: (analysis.images.document_photo === analysis.images.document_preview) ? '16% 40%' : 'center'
+                    }}
                   />
                 </div>
                 <div className="text-[11px] text-cyan-400 font-mono flex items-center justify-center space-x-1">
@@ -859,6 +902,7 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
                     src={analysis.images.live_face}
                     alt="Live Face"
                     className="w-full h-full object-cover rounded"
+                    style={{ objectPosition: 'center' }}
                   />
                 </div>
                 <div className="text-[11px] text-emerald-400 font-mono">
@@ -877,10 +921,11 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
                     alt="DB Reference"
                     className="w-full h-full object-cover rounded"
                     style={{
-                      // In case an uncropped landscape passport document is shown, align left to the portrait zone
                       objectPosition: analysis.face?.detection?.db_bbox
                         ? 'center'
-                        : '15% 35%'
+                        : (analysis.images.database_photo && analysis.images.database_photo.startsWith('/database_photos/'))
+                        ? '16% 40%'
+                        : 'center'
                     }}
                   />
                 </div>
@@ -903,12 +948,15 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
             <div className="p-5 rounded-xl bg-navy-950 border border-navy-800 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <div className="text-[10px] uppercase font-bold text-slate-400">COSINE SIMILARITY MATCH CONFIDENCE</div>
+                  <div className="text-[10px] uppercase font-bold text-cyan-400 flex items-center space-x-1.5">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                    <span>COSINE SIMILARITY MATCH CONFIDENCE (LOWEST OF 3 PAIRS)</span>
+                  </div>
                   <div className="text-3xl font-black font-mono text-white mt-0.5">
                     {analysis.face.scores.overall_face_match_score}%
                   </div>
                   <div className="text-xs text-slate-400 mt-1">
-                    Thresholds: 85-100% Match &bull; 60-84% Review &bull; 0-59% Mismatch
+                    Thresholds: 75-100% Match &bull; 55-74% Review &bull; 0-54% Mismatch &bull; Lowest Pairwise Confidence Enforced
                   </div>
                 </div>
 
@@ -925,7 +973,7 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
                 <div className="p-3 rounded-lg bg-navy-900 border border-navy-800 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pair 1: Doc vs Live</span>
-                    <span className={`text-xs font-mono font-bold ${(analysis.face.scores?.doc_vs_live_score ?? analysis.face.scores?.overall_face_match_score) >= 75 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <span className={`text-xs font-mono font-bold ${(analysis.face.scores?.doc_vs_live_score ?? analysis.face.scores?.overall_face_match_score) >= 75 ? 'text-emerald-400' : (analysis.face.scores?.doc_vs_live_score ?? analysis.face.scores?.overall_face_match_score) >= 55 ? 'text-amber-400' : 'text-red-400'}`}>
                       {analysis.face.scores?.doc_vs_live_score ?? analysis.face.scores?.overall_face_match_score}%
                     </span>
                   </div>
@@ -936,7 +984,7 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
                 <div className="p-3 rounded-lg bg-navy-900 border border-navy-800 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pair 2: Live vs Database</span>
-                    <span className={`text-xs font-mono font-bold ${!analysis.database_check.found ? 'text-slate-500' : (analysis.face.scores?.live_vs_db_score ?? analysis.face.scores?.overall_face_match_score) >= 75 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <span className={`text-xs font-mono font-bold ${!analysis.database_check.found ? 'text-slate-500' : (analysis.face.scores?.live_vs_db_score ?? analysis.face.scores?.overall_face_match_score) >= 75 ? 'text-emerald-400' : (analysis.face.scores?.live_vs_db_score ?? analysis.face.scores?.overall_face_match_score) >= 55 ? 'text-amber-400' : 'text-red-400'}`}>
                       {analysis.database_check.found 
                         ? `${analysis.face.scores?.live_vs_db_score ?? analysis.face.scores?.overall_face_match_score}%`
                         : 'Unregistered'}
@@ -949,7 +997,7 @@ export const OfficerAnalysisPage: React.FC<OfficerAnalysisPageProps> = ({
                 <div className="p-3 rounded-lg bg-navy-900 border border-navy-800 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pair 3: Doc vs Database</span>
-                    <span className={`text-xs font-mono font-bold ${!analysis.database_check.found ? 'text-slate-500' : (analysis.face.scores?.doc_vs_db_score ?? analysis.face.scores?.overall_face_match_score) >= 75 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    <span className={`text-xs font-mono font-bold ${!analysis.database_check.found ? 'text-slate-500' : (analysis.face.scores?.doc_vs_db_score ?? analysis.face.scores?.overall_face_match_score) >= 75 ? 'text-emerald-400' : (analysis.face.scores?.doc_vs_db_score ?? analysis.face.scores?.overall_face_match_score) >= 55 ? 'text-amber-400' : 'text-red-400'}`}>
                       {analysis.database_check.found 
                         ? `${analysis.face.scores?.doc_vs_db_score ?? analysis.face.scores?.overall_face_match_score}%`
                         : 'Unregistered'}

@@ -65,6 +65,7 @@ if __name__ == "__main__":
     face_in = args.face
     db_face_in = args.db_face
     demo_case = args.demo
+    tampering_preset = None
     fallback_dict = {}
 
     if args.json_file and os.path.exists(args.json_file):

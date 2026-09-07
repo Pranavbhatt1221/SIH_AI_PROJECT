@@ -352,8 +352,15 @@ async function extractDocumentData(imageBufferOrDataUrl, demoPresetData = null) 
 
   if (tesseract && imageBufferOrDataUrl) {
     try {
+      let imgInput = imageBufferOrDataUrl;
+      if (typeof imageBufferOrDataUrl === 'string' && imageBufferOrDataUrl.startsWith('data:image')) {
+        const base64Data = imageBufferOrDataUrl.split('base64,')[1] || imageBufferOrDataUrl.split(',')[1];
+        if (base64Data) {
+          imgInput = Buffer.from(base64Data, 'base64');
+        }
+      }
       console.log('Running real OCR on uploaded document image...');
-      const ocrResult = await tesseract.recognize(imageBufferOrDataUrl, 'eng', {
+      const ocrResult = await tesseract.recognize(imgInput, 'eng', {
         logger: () => {}
       });
       if (ocrResult && ocrResult.data && ocrResult.data.text) {

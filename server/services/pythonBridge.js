@@ -58,12 +58,12 @@ function runAiPipeline(options = {}) {
       stderr += chunk.toString();
     });
 
-    // 12-second execution safety timeout
+    // 35-second execution safety timeout for deep neural network models
     const timeout = setTimeout(() => {
       child.kill();
       cleanupTemp();
-      reject(new Error('Python AI pipeline execution timed out after 12 seconds.'));
-    }, 12000);
+      reject(new Error('Python AI pipeline execution timed out after 35 seconds.'));
+    }, 35000);
 
     function cleanupTemp() {
       try {
@@ -112,6 +112,90 @@ function runAiPipeline(options = {}) {
   });
 }
 
+const TAMPERING_SCRIPT = path.resolve(__dirname, '../../ai_engine/tampering_engine.py');
+
+/**
+ * Fast dedicated ELA Tampering Forensics runner (< 1 second).
+ * Bypasses OCR and Face extraction models for immediate heatmap rendering.
+ */
+function runTamperingPipeline(options = {}) {
+  return new Promise((resolve, reject) => {
+    const tempFileName = `sih_tamp_${Date.now()}_${Math.floor(Math.random() * 10000)}.json`;
+    const tempFilePath = path.join(os.tmpdir(), tempFileName);
+
+    try {
+      fs.writeFileSync(tempFilePath, JSON.stringify({
+        document_image: options.document_image || options.image || '',
+        tampering_preset: options.tampering_preset || options.preset || 'AUTO'
+      }), 'utf8');
+    } catch (err) {
+      return reject(new Error(`Failed to write temp tampering payload: ${err.message}`));
+    }
+
+    const pythonExecutable = fs.existsSync(PYTHON_PATH) ? PYTHON_PATH : 'python';
+    const child = spawn(pythonExecutable, [TAMPERING_SCRIPT, '--json_file', tempFilePath], {
+      windowsHide: true
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    const timeout = setTimeout(() => {
+      child.kill();
+      cleanupTemp();
+      reject(new Error('Tampering pipeline timed out after 15 seconds.'));
+    }, 15000);
+
+    function cleanupTemp() {
+      try {
+        if (fs.existsSync(tempFilePath)) {
+          fs.unlinkSync(tempFilePath);
+        }
+      } catch (e) {}
+    }
+
+    child.on('close', (code) => {
+      clearTimeout(timeout);
+      cleanupTemp();
+
+      if (code !== 0) {
+        return reject(new Error(`Tampering process failed (code ${code}): ${stderr.slice(0, 200)}`));
+      }
+
+      const startMarker = '__JSON_START__';
+      const endMarker = '__JSON_END__';
+      const startIndex = stdout.indexOf(startMarker);
+      const endIndex = stdout.indexOf(endMarker);
+
+      if (startIndex === -1 || endIndex === -1) {
+        return reject(new Error('Invalid output format from Tampering engine'));
+      }
+
+      try {
+        const jsonStr = stdout.substring(startIndex + startMarker.length, endIndex);
+        resolve(JSON.parse(jsonStr));
+      } catch (parseErr) {
+        reject(new Error(`Failed to parse tampering output JSON: ${parseErr.message}`));
+      }
+    });
+
+    child.on('error', (err) => {
+      clearTimeout(timeout);
+      cleanupTemp();
+      reject(new Error(`Failed to spawn Python process: ${err.message}`));
+    });
+  });
+}
+
 module.exports = {
-  runAiPipeline
+  runAiPipeline,
+  runTamperingPipeline
 };

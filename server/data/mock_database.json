@@ -7551,6 +7551,22 @@
   ],
   "screening_history": [
     {
+      "case_id": "CASE-2026-71270",
+      "timestamp": "2026-09-07T06:35:16.471Z",
+      "person_name": "GABRIEL PAPAGO",
+      "document_type": "Passport",
+      "document_number": "AK6995574",
+      "risk_score": 85,
+      "risk_level": "HIGH RISK",
+      "face_match_score": 5,
+      "tampering_score": 3,
+      "tampering_category": "Clean / Untampered",
+      "database_status": "VERIFIED_MATCH",
+      "decision": "REVIEW",
+      "officer_id": "OFFICER-742",
+      "officer_remarks": "CRITICAL ALERT: Serious biometric mismatch, tampering signature, or watchlist hit. Denied entry."
+    },
+    {
       "case_id": "CASE-2026-27953",
       "timestamp": "2026-09-06T02:32:25.311Z",
       "person_name": "GABRIEL PAPAGO",
@@ -7890,6 +7906,19 @@
       "remarks": "CRITICAL ALERT: Serious biometric mismatch, tampering signature, or watchlist hit. Denied entry.",
       "previous_record_hash": "8da70112eff0e0d6d440275f28339fe8028bb8e292436fc18b213d7b083c4834",
       "current_record_hash": "74aca6179ca03ef19999f5f072cd2ca6f7ecf7cf10c6dcba6ab12a06d9720bd6"
+    },
+    {
+      "audit_id": "AUDIT-BLK-1013",
+      "case_id": "CASE-2026-71270",
+      "timestamp": "2026-09-07T06:35:16.471Z",
+      "officer_id": "OFFICER-742",
+      "document_number": "AK6995574",
+      "risk_score": 85,
+      "risk_level": "HIGH RISK",
+      "decision": "REVIEW",
+      "remarks": "CRITICAL ALERT: Serious biometric mismatch, tampering signature, or watchlist hit. Denied entry.",
+      "previous_record_hash": "74aca6179ca03ef19999f5f072cd2ca6f7ecf7cf10c6dcba6ab12a06d9720bd6",
+      "current_record_hash": "d1a4f05ab05322f38bf438d7bbbc9cd2a3c0fd2812ba59c314f9d960ce0a9dd8"
     }
   ]
 }

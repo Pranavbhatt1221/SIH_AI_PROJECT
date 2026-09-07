@@ -6,6 +6,8 @@
 
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
 const db = require('../data/db');
 const { SIH_DEMO_CASES } = require('../data/seedData');
 const { assessImageQuality } = require('../services/iqa');
@@ -13,7 +15,7 @@ const { extractDocumentData } = require('../services/ocr');
 const { detectTampering } = require('../services/tampering');
 const { verifyFaces } = require('../services/face');
 const { calculateMultiModalRisk } = require('../services/riskEngine');
-const { runAiPipeline } = require('../services/pythonBridge');
+const { runAiPipeline, runTamperingPipeline } = require('../services/pythonBridge');
 
 // Get all pre-configured SIH Demo Cases
 router.get('/demo-cases', (req, res) => {
@@ -71,13 +73,15 @@ router.post('/analyze', async (req, res) => {
 
     // 3. Query Mock Authorized Database
     const dbCheck = db.queryDatabaseForDocument(docNumber, docName, docDob);
-    const dbPhotoUrl = dbCheck.found && dbCheck.passport ? dbCheck.passport.photo_reference : (demoData ? demoData.db_photo : docPhotoUrl);
+    const dbPhotoUrl = (dbCheck.found && dbCheck.passport && dbCheck.passport.photo_reference)
+      ? dbCheck.passport.photo_reference
+      : (demoData ? demoData.db_photo : null);
 
     // If dbPhotoUrl is a local static path, resolve absolute path so Python cv2 reads it directly from disk
     let dbPhotoForAi = dbPhotoUrl;
     if (dbPhotoUrl && typeof dbPhotoUrl === 'string' && dbPhotoUrl.startsWith('/database_photos/')) {
       const absPath = path.resolve(__dirname, '../public', dbPhotoUrl.replace(/^\//, ''));
-      if (require('fs').existsSync(absPath)) {
+      if (fs.existsSync(absPath)) {
         dbPhotoForAi = absPath;
       }
     }
@@ -151,7 +155,22 @@ router.post('/analyze', async (req, res) => {
 
     // 6. AI Tampering Analysis (Live OpenCV ELA Heatmap)
     const presetToUse = tampering_preset || (demoData ? demoData.tampering_preset : 'CLEAN');
-    const tampering = detectTampering(docPhotoUrl, presetToUse, liveAiResult);
+    let tampering = detectTampering(docPhotoUrl, presetToUse, liveAiResult);
+
+    // If liveAiResult had no tampering_result or failed, compute ELA directly via fast dedicated engine
+    if (!liveAiResult || !liveAiResult.tampering_result || !liveAiResult.tampering_result.ela_heatmap_url) {
+      try {
+        const directTamper = await runTamperingPipeline({
+          document_image: docPhotoUrl,
+          tampering_preset: presetToUse
+        });
+        if (directTamper && directTamper.ela_heatmap_url) {
+          tampering = detectTampering(docPhotoUrl, presetToUse, { tampering_result: directTamper });
+        }
+      } catch (tampErr) {
+        console.warn('Direct ELA computation notice:', tampErr.message);
+      }
+    }
 
     // If VIZ and MRZ mismatch, escalate tampering detection
     if (!vizMrzValid) {
@@ -293,27 +312,28 @@ router.post('/register-to-database', (req, res) => {
 // Dynamic Tampering Mode / ELA Simulation Endpoint (100% Dynamic CV)
 router.post('/simulate-tampering', async (req, res) => {
   try {
-    const { preset = 'CLEAN', docPhotoUrl } = req.body;
-    if (!docPhotoUrl || docPhotoUrl.length < 50) {
+    const { preset = 'CLEAN', docPhotoUrl, document_image } = req.body;
+    const targetImage = docPhotoUrl || document_image;
+    if (!targetImage || targetImage.length < 50) {
       return res.status(400).json({ success: false, error: 'CORRUPTED_IMAGE', message: 'No valid document image stream provided.' });
     }
 
     try {
-      const liveResult = await runAiPipeline({
-        document_image: docPhotoUrl,
+      const liveTampering = await runTamperingPipeline({
+        document_image: targetImage,
         tampering_preset: preset
       });
-      if (liveResult && liveResult.tampering_result) {
-        if (liveResult.tampering_result.corrupted) {
+      if (liveTampering) {
+        if (liveTampering.corrupted) {
           return res.status(400).json({ success: false, error: 'CORRUPTED_IMAGE', message: 'Document image is corrupted.' });
         }
-        return res.json({ success: true, tampering: liveResult.tampering_result });
+        return res.json({ success: true, tampering: liveTampering });
       }
     } catch (err) {
-      console.warn('Simulation dynamic pipeline notice:', err.message);
+      console.warn('Simulation dynamic tampering notice:', err.message);
     }
 
-    const tampering = detectTampering(docPhotoUrl, preset, null);
+    const tampering = detectTampering(targetImage, preset, null);
     res.json({ success: true, tampering });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

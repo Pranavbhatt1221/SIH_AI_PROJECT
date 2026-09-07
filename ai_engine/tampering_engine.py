@@ -318,5 +318,29 @@ class DocumentTamperingEngine:
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Standalone ELA Tampering Forensics Engine")
+    parser.add_argument("--image", type=str, default="", help="Path or base64 of image")
+    parser.add_argument("--preset", type=str, default="AUTO", help="Tampering preset hint")
+    parser.add_argument("--json_file", type=str, default="", help="Path to JSON payload file")
+
+    args = parser.parse_args()
     engine = DocumentTamperingEngine()
-    print("Tampering Engine Initialized. CV Available:", engine.is_cv)
+
+    image_in = args.image
+    preset_in = args.preset
+
+    if args.json_file and os.path.exists(args.json_file):
+        try:
+            with open(args.json_file, 'r', encoding='utf-8') as f:
+                payload = json.load(f)
+                image_in = payload.get("document_image") or payload.get("image") or image_in
+                preset_in = payload.get("tampering_preset") or payload.get("preset") or preset_in
+        except Exception as e:
+            print(f"Error reading json_file: {e}", file=sys.stderr)
+
+    if image_in:
+        result = engine.analyze(image_in, preset_hint=preset_in)
+        print("__JSON_START__" + json.dumps(result) + "__JSON_END__")
+    else:
+        print("Tampering Engine Initialized. CV Available:", engine.is_cv)

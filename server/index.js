@@ -18,6 +18,37 @@ const PORT = process.env.PORT || 5000;
 // Enable CORS for frontend dev server
 app.use(cors());
 
+// Process error guards to ensure server resilience
+process.on('uncaughtException', (err) => {
+  try {
+    const fs = require('fs');
+    fs.appendFileSync(path.join(__dirname, 'server_crash.log'), `[${new Date().toISOString()}] Uncaught: ${err && err.stack || err}\n`);
+  } catch (_) {}
+  console.error('[CRITICAL] Uncaught exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  try {
+    const fs = require('fs');
+    fs.appendFileSync(path.join(__dirname, 'server_crash.log'), `[${new Date().toISOString()}] Unhandled rejection: ${reason && reason.stack || reason}\n`);
+  } catch (_) {}
+  console.error('[CRITICAL] Unhandled promise rejection:', reason);
+});
+
+process.on('exit', (code) => {
+  try {
+    const fs = require('fs');
+    fs.appendFileSync(path.join(__dirname, 'server_crash.log'), `[${new Date().toISOString()}] Process exit with code: ${code}\n`);
+  } catch (_) {}
+});
+
+process.stdout?.on('error', (err) => {
+  if (err.code === 'EPIPE') return;
+});
+process.stderr?.on('error', (err) => {
+  if (err.code === 'EPIPE') return;
+});
+
 // Parse large JSON payloads (for base64 document and camera snapshots)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -67,10 +98,18 @@ app.get('*', (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`====================================================`);
   console.log(` AI DOCUMENT SCREENING SYSTEM`);
   console.log(` Server active on port: ${PORT}`);
   console.log(` API Health Check: http://localhost:${PORT}/api/health`);
   console.log(`====================================================`);
+});
+
+server.on('error', (err) => {
+  try {
+    const fs = require('fs');
+    fs.appendFileSync(path.join(__dirname, 'server_crash.log'), `[${new Date().toISOString()}] Server error: ${err && err.stack || err}\n`);
+  } catch (_) {}
+  console.error('[CRITICAL] Server error:', err);
 });
