@@ -36,6 +36,8 @@ class BiometricFaceEngine:
         self.is_insightface = False
         self.is_cv = CV_AVAILABLE
         self.face_cascade = None
+        self.yunet = None
+        self.sface = None
 
         if INSIGHTFACE_AVAILABLE:
             try:
@@ -47,9 +49,28 @@ class BiometricFaceEngine:
                 self.is_insightface = False
 
         if self.is_cv:
+            # Initialize YuNet deep face detector & SFace deep feature recognizer
+            models_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models')
+            yunet_path = os.path.join(models_dir, 'face_detection_yunet_2023mar.onnx')
+            sface_path = os.path.join(models_dir, 'face_recognition_sface_2021dec.onnx')
+
+            if os.path.exists(yunet_path) and hasattr(cv2, 'FaceDetectorYN'):
+                try:
+                    self.yunet = cv2.FaceDetectorYN.create(yunet_path, '', (320, 320), score_threshold=0.6)
+                except Exception as e:
+                    self.yunet = None
+                    print(f"YuNet init notice: {e}", file=sys.stderr)
+
+            if os.path.exists(sface_path) and hasattr(cv2, 'FaceRecognizerSF'):
+                try:
+                    self.sface = cv2.FaceRecognizerSF.create(sface_path, '')
+                except Exception as e:
+                    self.sface = None
+                    print(f"SFace init notice: {e}", file=sys.stderr)
+
             try:
                 cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
-                if os.path.exists(cascade_path):
+                if os.path.exists(cascade_path) and hasattr(cv2, 'CascadeClassifier'):
                     self.face_cascade = cv2.CascadeClassifier(cascade_path)
             except Exception:
                 self.face_cascade = None
@@ -129,7 +150,8 @@ class BiometricFaceEngine:
 
     def extract_face_crop_and_embedding(self, rgb_img):
         """
-        Detects primary face, crops ROI, and computes normalized 512-D facial embedding.
+        Detects primary face, crops ROI, and computes deep facial feature embedding.
+        Supports both full passport pages and pre-cropped face portraits.
         """
         if rgb_img is None:
             return None
@@ -139,34 +161,71 @@ class BiometricFaceEngine:
 
         bbox = None
         face_crop = None
+        deep_feature = None
 
-        # 1. Try Haar Cascade face detection
-        if self.face_cascade is not None:
-            faces = self.face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(40, 40))
-            if len(faces) > 0:
-                # Largest face by area
-                faces = sorted(faces, key=lambda f: f[2] * f[3], reverse=True)
-                x, y, fw, fh = faces[0]
-                bbox = [int(x), int(y), int(fw), int(fh)]
-                # Add natural passport portrait margins (top for hair/crown, bottom for neck/collar)
-                pad_x = int(fw * 0.20)
-                pad_top = int(fh * 0.30)
-                pad_bottom = int(fh * 0.35)
-                x1, y1 = max(0, x - pad_x), max(0, y - pad_top)
-                x2, y2 = min(w, x + fw + pad_x), min(h, y + fh + pad_bottom)
-                face_crop = rgb_img[y1:y2, x1:x2]
+        # 1. Deep Face Detection & Landmark Extraction with YuNet + SFace
+        if self.yunet is not None:
+            try:
+                self.yunet.setInputSize((int(w), int(h)))
+                _, faces = self.yunet.detect(rgb_img)
+                if faces is not None and len(faces) > 0:
+                    best_face = max(faces, key=lambda f: float(f[2] * f[3] * f[-1]))
+                    fx, fy, fw, fh = int(best_face[0]), int(best_face[1]), int(best_face[2]), int(best_face[3])
+                    bbox = [max(0, fx), max(0, fy), min(w - fx, fw), min(h - fy, fh)]
 
-        # If no face found by detector (e.g. document photo where face wasn't caught by detector),
-        # in standard ICAO passports/ID cards, portrait is on the left side:
+                    if self.sface is not None:
+                        try:
+                            aligned_face = self.sface.alignCrop(rgb_img, best_face)
+                            feat = self.sface.feature(aligned_face)
+                            norm_f = feat / (np.linalg.norm(feat) + 1e-6)
+                            deep_feature = norm_f.flatten().tolist()
+                        except Exception as se:
+                            print(f"SFace alignment/feature error: {se}", file=sys.stderr)
+
+                    # For UI presentation crop:
+                    # If this image is already a pre-cropped portrait (aspect ratio close to 1:1 or 3:4, and face occupies >= 30%):
+                    # Keep the user's pre-cropped portrait framing!
+                    is_already_crop = (w <= h * 1.35) and ((fw * fh) >= 0.30 * w * h)
+                    if is_already_crop:
+                        face_crop = rgb_img
+                    else:
+                        pad_x = int(fw * 0.25)
+                        pad_top = int(fh * 0.35)
+                        pad_bottom = int(fh * 0.35)
+                        x1, y1 = max(0, fx - pad_x), max(0, fy - pad_top)
+                        x2, y2 = min(w, fx + fw + pad_x), min(h, fy + fh + pad_bottom)
+                        face_crop = rgb_img[y1:y2, x1:x2]
+            except Exception as ye:
+                print(f"YuNet detection notice: {ye}", file=sys.stderr)
+
+        # 2. Fallback face detection (Haar Cascade or Document Layout Heuristics)
+        if face_crop is None or face_crop.size == 0:
+            if self.face_cascade is not None:
+                try:
+                    faces = self.face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(40, 40))
+                    if len(faces) > 0:
+                        faces = sorted(faces, key=lambda f: f[2] * f[3], reverse=True)
+                        x, y, fw, fh = faces[0]
+                        bbox = [int(x), int(y), int(fw), int(fh)]
+                        pad_x = int(fw * 0.20)
+                        pad_top = int(fh * 0.30)
+                        pad_bottom = int(fh * 0.35)
+                        x1, y1 = max(0, x - pad_x), max(0, y - pad_top)
+                        x2, y2 = min(w, x + fw + pad_x), min(h, y + fh + pad_bottom)
+                        face_crop = rgb_img[y1:y2, x1:x2]
+                except Exception:
+                    pass
+
         if face_crop is None or face_crop.size == 0:
             if w > h * 1.1:  # Landscape ID/Passport
                 x1, y1 = int(w * 0.04), int(h * 0.18)
                 x2, y2 = int(w * 0.42), int(h * 0.78)
+                face_crop = rgb_img[y1:y2, x1:x2]
+                bbox = [x1, y1, x2 - x1, y2 - y1]
             else:
-                x1, y1 = int(w * 0.1), int(h * 0.1)
-                x2, y2 = int(w * 0.9), int(h * 0.85)
-            face_crop = rgb_img[y1:y2, x1:x2]
-            bbox = [x1, y1, x2 - x1, y2 - y1]
+                # Pre-cropped image: keep entire image intact
+                face_crop = rgb_img
+                bbox = [0, 0, w, h]
 
         # Generate high-quality base64 JPEG crop for UI display
         crop_b64 = None
@@ -192,7 +251,7 @@ class BiometricFaceEngine:
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         aligned_gray = clahe.apply(aligned_gray)
 
-        # 2. Extract 512-D Normalized Spatial & Texture Biometric Vector
+        # 3. Extract 512-D Normalized Spatial & Texture Biometric Vector (Fallback embedding)
         # A. Spatial Grid LBP (8x8 grid -> 64 cells x 6 bins = 384 dimensions)
         lbp = self.compute_spatial_lbp(aligned_gray)  # 110x110
         cell_h, cell_w = 110 // 8, 110 // 8
@@ -224,18 +283,11 @@ class BiometricFaceEngine:
         else:
             raw_combined = raw_combined[:512]
 
-        # L2 Normalize embedding vector: ||v|| = 1.0 (ArcFace standard)
         norm = np.linalg.norm(raw_combined)
         if norm > 0:
             normalized_embedding = (raw_combined / norm).tolist()
         else:
             normalized_embedding = raw_combined.tolist()
-
-        # Extract canonical 96x96 normalized face patch for structural correlation
-        patch_gray = cv2.resize(aligned_gray, (96, 96))
-        patch_eq = cv2.equalizeHist(patch_gray).astype(np.float32)
-        patch_zero = patch_eq - np.mean(patch_eq)
-        patch_norm = patch_zero / (np.linalg.norm(patch_zero) + 1e-6)
 
         # Liveness checks (Laplacian sharpness & contrast in face ROI)
         lap_var = float(cv2.Laplacian(aligned_gray, cv2.CV_64F).var())
@@ -245,19 +297,35 @@ class BiometricFaceEngine:
             "detected": True,
             "bbox": bbox,
             "crop_image": crop_b64,
+            "deep_feature": deep_feature,
             "embedding": normalized_embedding,
-            "patch": patch_norm,
             "sharpness": liveness_sharpness,
             "aspect_ratio": round(bbox[3] / max(1, bbox[2]), 2) if bbox else 1.0
         }
 
     @staticmethod
+    def sface_cos_to_percent(cos):
+        """
+        Maps SFace Cosine Similarity to calibrated biometric match percentage (0 - 100%).
+        - Same person (cos >= 0.75): 90.0% - 99.5% (MATCH)
+        - Probable match (cos 0.50 - 0.75): 75.0% - 90.0% (MATCH)
+        - Review needed (cos 0.363 - 0.50): 55.0% - 75.0% (REVIEW)
+        - Impersonator / Mismatch (cos < 0.363): 5.0% - 54.0% (MISMATCH)
+        """
+        if cos >= 0.75:
+            return round(min(99.5, 90.0 + (cos - 0.75) / 0.23 * 9.0), 1)
+        elif cos >= 0.50:
+            return round(75.0 + (cos - 0.50) / 0.25 * 15.0, 1)
+        elif cos >= 0.363:
+            return round(55.0 + (cos - 0.363) / (0.50 - 0.363) * 20.0, 1)
+        else:
+            ratio = max(0.0, cos) / 0.363
+            return round(max(5.0, min(54.0, ratio * 52.0)), 1)
+
+    @staticmethod
     def sim_to_percent(corr):
         """
-        Calibrated biometric confidence curve mapping normalized structural correlation to 0-100%.
-        - Identical / same face: corr >= 0.95 -> 92.0% to 99.0% (MATCH)
-        - Minor variations / high similarity: corr 0.65 to 0.95 -> 60.0% to 91.9% (REVIEW / MATCH)
-        - Different identity / mismatched face: corr < 0.65 -> 5.0% to 52.0% (MISMATCH)
+        Fallback biometric confidence curve for spatial texture embeddings.
         """
         if corr >= 0.98:
             return 99.0
@@ -272,12 +340,17 @@ class BiometricFaceEngine:
         """Calculates pairwise similarity percentage between two extracted face representations."""
         if not faceA or not faceB:
             return 85.0
-        if "patch" in faceA and "patch" in faceB:
-            corr = float(np.sum(faceA["patch"] * faceB["patch"]))
-            return self.sim_to_percent(corr)
-        elif "embedding" in faceA and "embedding" in faceB:
+
+        # 1. Primary: Deep SFace Cosine Similarity (Deep Neural Network, 128-D)
+        if faceA.get("deep_feature") and faceB.get("deep_feature"):
+            cos = self.cosine_similarity(faceA["deep_feature"], faceB["deep_feature"])
+            return self.sface_cos_to_percent(cos)
+
+        # 2. Secondary: 512-D Spatial Texture Embedding Cosine Similarity
+        if faceA.get("embedding") and faceB.get("embedding"):
             cos = self.cosine_similarity(faceA["embedding"], faceB["embedding"])
             return self.sim_to_percent(cos)
+
         return 85.0
 
     def verify_faces(self, doc_face_input, live_face_input, db_face_input=None, expected_hint_score=None):
@@ -372,8 +445,8 @@ class BiometricFaceEngine:
                 "sharpness_score": round(live_face["sharpness"], 1),
                 "motion_confirmed": True
             },
-            "embedding_sample": doc_face["embedding"][:16],
-            "embedding_dimension": 512
+            "embedding_sample": (doc_face.get("deep_feature") or doc_face["embedding"])[:16],
+            "embedding_dimension": len(doc_face.get("deep_feature") or doc_face["embedding"])
         }
 
 
